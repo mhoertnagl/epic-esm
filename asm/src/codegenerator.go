@@ -23,6 +23,7 @@ func (gen *CodeGenerator) Compile(ins string) uint32 {
 		//
 		return 0
 	}
+	start := loc[0]
 	cmd := ins[loc[0]:loc[1]]
 	tra, ok := gen.contract.translations[cmd]
 	if !ok {
@@ -30,7 +31,7 @@ func (gen *CodeGenerator) Compile(ins string) uint32 {
 		return 0
 	}
 	for _, e := range tra {
-		i := 3
+		i := start
 		asm := e.template
 		for _, arg := range strings.Split(e.args, " ") {
 			pat, ok := gen.contract.patterns[arg]
@@ -45,6 +46,7 @@ func (gen *CodeGenerator) Compile(ins string) uint32 {
 				break
 			}
 			conv := gen.contract.conversions[arg]
+			// TODO: Create a local error scroll and commit errors only if it was the last one.
 			val, ok := conv(ins[loc[0]:loc[1]], gen.scroll)
 			if !ok {
 				// Conversion error. Try alternative conversion if available.
@@ -54,6 +56,7 @@ func (gen *CodeGenerator) Compile(ins string) uint32 {
 			i = loc[1]
 		}
 		// If some errors happened. Remember them and try another one else return asm.
+		// TODO: Increment gen.ip = gen.ip + 1
 		return asm
 	}
 	return 0
