@@ -8,9 +8,8 @@ import (
 )
 
 var text = `
-/**
- * Toller Test
- */
+// Toller Test
+// ------------
 @L0
   add   r0 r1 r2    // Test
   sll   r0 r0 2
