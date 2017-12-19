@@ -51,6 +51,10 @@ func convertReg(s uint8, p uint8) ConversionFunction {
 	return func(r string, scroll *ErrorScroll) (uint32, bool) {
 		if r[0] == 'r' {
 			i, err := strconv.ParseInt(r[1:], 10, 32)
+			if err != nil {
+				scroll.NewError("Unexpected register name [%s]. Expecting one of [r0,r1,...,r15].", r)
+				return 0, false
+			}
 			if i < 0 || i > 15 {
 				scroll.NewError("Unexpected register name [%s]. Expecting one of [r0,r1,...,r15].", r)
 			}
@@ -65,9 +69,17 @@ func convertNum(s uint8, p uint8) ConversionFunction {
 	return func(n string, scroll *ErrorScroll) (uint32, bool) {
 		if n[0:2] == "0x" {
 			i, err := strconv.ParseInt(n, 16, 32)
+			if err != nil {
+				scroll.NewError("Unexpected number [%s]. Expecting hexadecimal number.", n)
+				return 0, false
+			}
 			return place(i, s, p, scroll)
 		} else {
 			i, err := strconv.ParseInt(n, 10, 32)
+			if err != nil {
+				scroll.NewError("Unexpected number [%s]. Expecting decimal number.", n)
+				return 0, false
+			}
 			return place(i, s, p, scroll)
 		}
 	}
