@@ -20,10 +20,10 @@ var text = `
 
 const eof = rune(0)
 
-type tokentype int
+type tokenType int
 
 const (
-	ERROR tokentype = iota
+	ERROR tokenType = iota
 	NOOP
 	EOF
 	WS
@@ -32,12 +32,19 @@ const (
 	REGISTER
 	NUMBER
 	SYMBOL
-	SINGLE_LINE_COMMENT
-	MULTI_LINE_COMMENT
+	COMMENT
 )
 
+//
+// type item struct {
+// 	typ itemType // Type, such as itemNumber.
+// 	val string   // Value, such as "23.2".
+// }
+
+// Token provides a set of attributes for each scanned token.
+// And i dont know what else to write.
 type Token struct {
-	typ    tokentype
+	typ    tokenType
 	lexeme string
 	number int32
 	lineNo int
@@ -65,10 +72,8 @@ func (t *Token) String() string {
 		buf.WriteString("NUMBER")
 	case SYMBOL:
 		buf.WriteString("SYMBOL")
-	case SINGLE_LINE_COMMENT:
+	case COMMENT:
 		buf.WriteString("SINGLE_LINE_COMMENT")
-	case MULTI_LINE_COMMENT:
-		buf.WriteString("MULTI_LINE_COMMENT")
 	}
 	buf.WriteString(" lexeme=[")
 	buf.WriteString(strings.Replace(t.lexeme, "\n", "\\n", -1))
@@ -79,45 +84,120 @@ func (t *Token) String() string {
 // TODO: Peek statt read.
 // TODO: Liest den nächsten Character. Fügt ihn dem Buffer hinzu wenn p die
 //       rune akzeptiert. wenn nicht sollte ein error generiert werden.
-//       Methode (scanner *EsmScanner) Accept(p func(rune)bool) rune
+//       Methode (l *Lexer) Accept(p func(rune)bool) rune
 // TODO: Buffer in Scanner integrieren. mit read char hinzufügen. Mit unread
 //       zeichen wieder aus bufer entfernen.
 
-type EsmScanner struct {
-	commands map[string]bool
-	reader   *bufio.Reader
-	lineNo   int
-	chrPos   int
+type Lexer struct {
+	reader *bufio.Reader
+	lineNo int
+	chrPos int
 }
 
-func NewEsmScanner(reader *bufio.Reader) *EsmScanner {
-	s := &EsmScanner{make(map[string]bool), reader, 0, 0}
-	s.commands["add"] = true
-	return s
+func NewLexer(reader *bufio.Reader) *Lexer {
+	return &Lexer{reader, 0, 0}
 }
 
-func (scanner *EsmScanner) newToken(typ tokentype) *Token {
-	return &Token{typ, "", 0, scanner.lineNo, scanner.chrPos}
+func (l *Lexer) emit(typ tokenType) *Token {
+	return &Token{typ, "", 0, l.lineNo, l.chrPos}
 }
 
-func (scanner *EsmScanner) error(msg string) *Token {
-	return &Token{ERROR, msg, 0, scanner.lineNo, scanner.chrPos}
+func (l *Lexer) error(msg string) *Token {
+	return &Token{ERROR, msg, 0, l.lineNo, l.chrPos}
 }
 
-func (scanner *EsmScanner) noop() *Token {
+func (l *Lexer) noop() *Token {
 	return &Token{NOOP, "", 0, 0, 0}
 }
 
-func (scanner *EsmScanner) read() rune {
-	c, _, err := scanner.reader.ReadRune()
+func (l *Lexer) read() rune {
+	c, _, err := l.reader.ReadRune()
 	if err != nil {
 		return eof
 	}
 	return c
 }
 
-func (scanner *EsmScanner) unread() {
-	scanner.reader.UnreadRune()
+func (l *Lexer) unread() {
+	l.reader.UnreadRune()
+}
+
+func (l *Lexer) acceptAny(v string) bool {
+	if strings.IndexRune(v, l.read()) >= 0 {
+		return true
+	}
+	l.unread()
+	return false
+}
+
+func (l *Lexer) acceptAnySeq(v string) bool {
+	for l.acceptAny(v) {
+	}
+	l.unread()
+	return false
+}
+
+func (l *Lexer) acceptSeq(s string) bool {
+	for _, r := range s {
+		if !l.acceptRune(r) {
+			break
+		}
+	}
+	l.unread()
+	return false
+}
+
+func (l *Lexer) acceptRune(r rune) bool {
+	if l.read() == r {
+		return true
+	}
+	l.unread()
+	return false
+}
+
+func (l *Lexer) acceptFunc(p func(rune) bool) bool {
+	if p(l.read()) {
+		return true
+	}
+	l.unread()
+	return false
+}
+
+func (l *Lexer) acceptFuncSeq(p func(rune) bool) bool {
+	for l.acceptFunc(p) {
+	}
+	l.unread()
+	return false
+}
+
+func (l *Lexer) acceptUntilRune(r rune) bool {
+	for {
+		c := l.read()
+		if c == r || c == eof {
+			break
+		}
+	}
+	l.unread()
+	return false
+}
+
+func (l *Lexer) acceptUntilAny(v string) bool {
+	for {
+		c := l.read()
+		if strings.IndexRune(v, c) >= 0 || c == eof {
+			break
+		}
+	}
+	l.unread()
+	return false
+}
+
+func (l *Lexer) acceptOneOf(a []string) bool {
+	if strings.IndexRune(v, l.read()) >= 0 {
+		return true
+	}
+	l.unread()
+	return false
 }
 
 func isDigit(c rune) bool {
@@ -125,11 +205,11 @@ func isDigit(c rune) bool {
 }
 
 func isBinDigit(c rune) bool {
-	return c == '0' || c == '9'
+	return c == '0' || c == '1'
 }
 
 func isHexDigit(c rune) bool {
-	return 'a' <= c && c <= 'f'
+	return '0' <= c && c <= '9' || 'a' <= c && c <= 'f'
 }
 
 func isWhitespace(c rune) bool {
@@ -148,221 +228,72 @@ func isAlphaNum(c rune) bool {
 	return isAlpha(c) || isDigit(c)
 }
 
-func (scanner *EsmScanner) Next() *Token {
-	c := scanner.read()
-	//fmt.Printf("%q\n", c)
-	if c == eof {
-		return scanner.newToken(EOF)
+// Next returns the next token in the stream.
+func (l *Lexer) Next() *Token {
+	if l.acceptRune(eof) {
+		return l.emit(EOF)
 	}
-	if isWhitespace(c) {
-		scanner.unread()
-		return scanner.scanWhitespace()
+	if l.acceptRune('\n') {
+		l.lineNo++
+		return l.Next()
 	}
-	if c == '/' {
-		return scanner.scanComment()
+	if l.acceptRune('\r') {
+		return l.Next()
 	}
-	if isDigit(c) {
-		return scanner.scanNumber(c)
+	if l.acceptAny(" \t") {
+		l.scanWhitespace()
 	}
-	if c == '@' {
-		return scanner.scanSymbol()
+	if l.acceptSeq("//") {
+		l.scanSingleLineComment()
 	}
-	if isLowerAlpha(c) {
-		return scanner.scanCommand(c)
+	if l.acceptSeq("0x") {
+		l.scanHexNumber()
+	}
+	if l.acceptFunc(isDigit) {
+		l.scanDecNumber()
+	}
+	if l.acceptRune('@') {
+		l.scanSymbol()
+	}
+	if l.acceptFunc(isLowerAlpha) {
+		l.scanComand()
 	}
 	return nil
 }
 
-func (scanner *EsmScanner) scanWhitespace() *Token {
-	var buf bytes.Buffer
-	for {
-		c := scanner.read()
-		if isWhitespace(c) {
-			buf.WriteString(fmt.Sprintf("%q", c))
-		} else {
-			scanner.unread()
-			break
-		}
-	}
-	return &Token{WS, buf.String(), 0, 0, 0}
+func (l *Lexer) scanWhitespace() *Token {
+	l.acceptAnySeq(" \t")
+	return l.Next()
 }
 
-func (scanner *EsmScanner) scanBinNumber() int32 {
-	var n int32
-	for {
-		c := scanner.read()
-		if isBinDigit(c) {
-			n = 2*n + (int32)(c-rune('0'))
-		} else {
-			scanner.unread()
-			break
-		}
-	}
-	return n
+func (l *Lexer) scanSingleLineComment() *Token {
+	l.acceptUntilAny("\n\r")
+	return l.emit(COMMENT)
 }
 
-func (scanner *EsmScanner) scanHexNumber() int32 {
-	var n int32
-	for {
-		c := scanner.read()
-		if isDigit(c) {
-			n = 16*n + (int32)(c-rune('0'))
-		} else if isHexDigit(c) {
-			n = 16*n + (int32)(c-rune('a')+10)
-		} else {
-			scanner.unread()
-			break
-		}
-	}
-	return n
+func (l *Lexer) scanHexNumber() *Token {
+	l.acceptFuncSeq(isHexDigit)
+	return l.emit(NUMBER)
 }
 
-func (scanner *EsmScanner) scanDecNumber() int32 {
-	var n int32
-	for {
-		c := scanner.read()
-		if isDigit(c) {
-			n = 10*n + (int32)(c-rune('0'))
-		} else {
-			scanner.unread()
-			break
-		}
-	}
-	return n
+func (l *Lexer) scanDecNumber() *Token {
+	l.acceptFuncSeq(isDigit)
+	return l.emit(NUMBER)
 }
 
-func (scanner *EsmScanner) scanNumber(c rune) *Token {
-	lineNo := scanner.lineNo
-	chrPos := scanner.chrPos
-	t := &Token{NUMBER, "", c, lineNo, chrPos}
-	//c := scanner.read()
-	if c == '0' {
-		l := scanner.read()
-		if l == 'b' {
-			t.number = scanner.scanBinNumber()
-			return t
-		} else if l == 'x' {
-			t.number = scanner.scanHexNumber()
-			return t
-		} else if isDigit(l) {
-			t.number = scanner.scanDecNumber()
-			return t
-		}
-	} else if isDigit(c) {
-		t.number = scanner.scanDecNumber()
-		return t
-	} else {
-		scanner.unread()
-	}
-	return scanner.noop()
+func (l *Lexer) scanSymbol() *Token {
+	l.acceptFuncSeq(isAlphaNum)
+	return l.emit(SYMBOL)
 }
 
-func (scanner *EsmScanner) scanSymbol() *Token {
-	var buf bytes.Buffer
-	buf.WriteRune('@')
-	c := scanner.read()
-	if isAlpha(c) {
-		buf.WriteRune(c)
-	} else {
-		return scanner.error("Invalid symbol character. Expecting letter.")
-	}
-	for {
-		c := scanner.read()
-		if isAlphaNum(c) {
-			buf.WriteRune(c)
-		} else {
-			scanner.unread()
-			return &Token{SYMBOL, buf.String(), 0, 0, 0}
-		}
-	}
-}
-
-func (scanner *EsmScanner) scanCommand(c rune) *Token {
-	var buf bytes.Buffer
-
-	//c := scanner.read()
-	if isLowerAlpha(c) {
-		buf.WriteRune(c)
-	} else {
-		return scanner.error(fmt.Sprintf("Invalid character [%q]. Expecting letter.", c))
-	}
-
-	c = scanner.read()
-	if isLowerAlpha(c) {
-		buf.WriteRune(c)
-	} else {
-		return scanner.error(fmt.Sprintf("Invalid character [%q]. Expecting letter.", c))
-	}
-
-	c = scanner.read()
-	if isLowerAlpha(c) {
-		buf.WriteRune(c)
-	} else {
-		return scanner.error(fmt.Sprintf("Invalid character [%q]. Expecting letter.", c))
-	}
-
-	cmd := buf.String()
-	if scanner.commands[cmd] {
-		return &Token{COMMAND, cmd, 0, 0, 0}
-	}
-	return scanner.error(fmt.Sprintf("Unrecognized command [%s].", cmd))
-}
-
-func (scanner *EsmScanner) scanComment() *Token {
-	lineNo := scanner.lineNo
-	chrPos := scanner.chrPos
-	var buf bytes.Buffer
-	//c := scanner.read()
-	//if c == '/' {
-	buf.WriteRune('/')
-	l := scanner.read()
-	if l == '/' {
-		buf.WriteRune(l)
-		for {
-			x := scanner.read()
-			if x == '\n' || x == eof {
-				buf.WriteRune('\n')
-				break
-			} else {
-				buf.WriteRune(x)
-			}
-		}
-		return &Token{SINGLE_LINE_COMMENT, buf.String(), 0, lineNo, chrPos}
-	} else if l == '*' {
-		buf.WriteRune(l)
-		for {
-			x := scanner.read()
-			buf.WriteRune(x)
-			if x == '*' {
-				y := scanner.read()
-				buf.WriteRune(y)
-				if y == '/' {
-					return &Token{MULTI_LINE_COMMENT, buf.String(), 0, lineNo, chrPos}
-				} else if x == eof {
-					return scanner.error("Unexpected end of file. Expecting end of multi line comment '/'.")
-				}
-			} else if x == eof {
-				return scanner.error("Unexpected end of file. Expecting end of multi line comment '*/'.")
-			}
-		}
-	} else {
-		return scanner.error("Invalid input '?'. Expecting '/' or '*'")
-	}
-	//}
-	//return scanner.error("Expecting comment.")
-}
-
-/**
- * Test
- */
 func main() {
 	reader := bufio.NewReader(strings.NewReader(text))
-	scanner := NewEsmScanner(reader)
-	fmt.Println(scanner.Next())
-	fmt.Println(scanner.Next())
-	fmt.Println(scanner.Next())
-	fmt.Println(scanner.Next())
-	fmt.Println(scanner.Next())
-	fmt.Println(scanner.Next())
-	fmt.Println(scanner.Next())
+	l := NewLexer(reader)
+	fmt.Println(l.Next())
+	fmt.Println(l.Next())
+	fmt.Println(l.Next())
+	fmt.Println(l.Next())
+	fmt.Println(l.Next())
+	fmt.Println(l.Next())
+	fmt.Println(l.Next())
 }
