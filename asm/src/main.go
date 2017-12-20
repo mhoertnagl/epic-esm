@@ -11,7 +11,7 @@ var text = `
 // Toller Test
 // ------------
 @L0
-  add   r0 r1 r2    // Test
+  add   %0 %1 %2    // Test
   sll   r0 r0 2
   // Noch ein Kommentar
   tst   r0 r0 0
@@ -24,9 +24,7 @@ type tokenType int
 
 const (
 	ERROR tokenType = iota
-	NOOP
 	EOF
-	WS
 	COMMAND
 	COMMAND_CONDITION
 	REGISTER
@@ -56,12 +54,8 @@ func (t *Token) String() string {
 	switch t.typ {
 	case ERROR:
 		buf.WriteString("ERROR")
-	case NOOP:
-		buf.WriteString("NOOP")
 	case EOF:
 		buf.WriteString("EOF")
-	case WS:
-		buf.WriteString("WS")
 	case COMMAND:
 		buf.WriteString("COMMAND")
 	case COMMAND_CONDITION:
@@ -81,10 +75,6 @@ func (t *Token) String() string {
 	return buf.String()
 }
 
-// TODO: Peek statt read.
-// TODO: Liest den nächsten Character. Fügt ihn dem Buffer hinzu wenn p die
-//       rune akzeptiert. wenn nicht sollte ein error generiert werden.
-//       Methode (l *Lexer) Accept(p func(rune)bool) rune
 // TODO: Buffer in Scanner integrieren. mit read char hinzufügen. Mit unread
 //       zeichen wieder aus bufer entfernen.
 
@@ -106,10 +96,6 @@ func (l *Lexer) error(msg string) *Token {
 	return &Token{ERROR, msg, 0, l.lineNo, l.chrPos}
 }
 
-func (l *Lexer) noop() *Token {
-	return &Token{NOOP, "", 0, 0, 0}
-}
-
 func (l *Lexer) read() rune {
 	c, _, err := l.reader.ReadRune()
 	if err != nil {
@@ -120,6 +106,18 @@ func (l *Lexer) read() rune {
 
 func (l *Lexer) unread() {
 	l.reader.UnreadRune()
+}
+
+func (l *Lexer) peek() rune {
+	r := l.read()
+	l.unread()
+	return r
+}
+
+func (l *Lexer) backup(n int) {
+	for i := 0; i < n; i++ {
+		l.unread()
+	}
 }
 
 func (l *Lexer) acceptAny(v string) bool {
@@ -137,13 +135,17 @@ func (l *Lexer) acceptAnySeq(v string) bool {
 	return false
 }
 
+// TODO: backup should work without a number of repetitions if we condiser the
+//       word consumed so far.
 func (l *Lexer) acceptSeq(s string) bool {
-	for _, r := range s {
+	n := 0
+	for i, r := range s {
 		if !l.acceptRune(r) {
+			n = i + 1
 			break
 		}
 	}
-	l.unread()
+	l.backup(n)
 	return false
 }
 
@@ -187,14 +189,6 @@ func (l *Lexer) acceptUntilAny(v string) bool {
 		if strings.IndexRune(v, c) >= 0 || c == eof {
 			break
 		}
-	}
-	l.unread()
-	return false
-}
-
-func (l *Lexer) acceptOneOf(a []string) bool {
-	if strings.IndexRune(v, l.read()) >= 0 {
-		return true
 	}
 	l.unread()
 	return false
@@ -252,11 +246,12 @@ func (l *Lexer) Next() *Token {
 	if l.acceptFunc(isDigit) {
 		l.scanDecNumber()
 	}
+	// Make registers, commands, conditions, labels return identifer tokens.
 	if l.acceptRune('@') {
 		l.scanSymbol()
 	}
 	if l.acceptFunc(isLowerAlpha) {
-		l.scanComand()
+		//l.scanComand()
 	}
 	return nil
 }
