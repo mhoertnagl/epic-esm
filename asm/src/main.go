@@ -4,19 +4,10 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
+	"io"
+	"strconv"
 	"strings"
 )
-
-var text = `
-// Toller Test
-// ------------
-@L0
-  add   %0 %1 %2    // Test
-  sll   r0 r0 2
-  // Noch ein Kommentar
-  tst   r0 r0 0
-  brlgt @L0
-`
 
 const eof = rune(0)
 
@@ -26,21 +17,15 @@ const (
 	ERROR tokenType = iota
 	EOF
 	COMMAND
-	COMMAND_CONDITION
 	REGISTER
 	NUMBER
+	LBRACKET
+	RBRACKET
 	SYMBOL
 	COMMENT
 )
 
-//
-// type item struct {
-// 	typ itemType // Type, such as itemNumber.
-// 	val string   // Value, such as "23.2".
-// }
-
 // Token provides a set of attributes for each scanned token.
-// And i dont know what else to write.
 type Token struct {
 	typ    tokenType
 	lexeme string
@@ -58,8 +43,6 @@ func (t *Token) String() string {
 		buf.WriteString("EOF")
 	case COMMAND:
 		buf.WriteString("COMMAND")
-	case COMMAND_CONDITION:
-		buf.WriteString("COMMAND_CONDITION")
 	case REGISTER:
 		buf.WriteString("REGISTER")
 	case NUMBER:
@@ -67,45 +50,73 @@ func (t *Token) String() string {
 	case SYMBOL:
 		buf.WriteString("SYMBOL")
 	case COMMENT:
-		buf.WriteString("SINGLE_LINE_COMMENT")
+		buf.WriteString("COMMENT")
 	}
 	buf.WriteString(" lexeme=[")
 	buf.WriteString(strings.Replace(t.lexeme, "\n", "\\n", -1))
-	buf.WriteString(fmt.Sprintf("] num=[%d] line=[] pos=[]", t.number))
+	buf.WriteString(fmt.Sprintf("] num=[%d] line=[%d] pos=[%d]", t.number, t.lineNo, t.chrPos))
 	return buf.String()
 }
 
-// TODO: Buffer in Scanner integrieren. mit read char hinzufügen. Mit unread
-//       zeichen wieder aus bufer entfernen.
+// TODO: Channel für die Ausgabe von Tokens verwenden?
 
 type Lexer struct {
-	reader *bufio.Reader
+	rd *bufio.Reader
+	//buf    *bytes.Buffer
+	buf    string
+	bufLen int
 	lineNo int
 	chrPos int
 }
 
-func NewLexer(reader *bufio.Reader) *Lexer {
-	return &Lexer{reader, 0, 0}
+func NewLexer(rd io.Reader, size int) *Lexer {
+	return &Lexer{
+		rd:     bufio.NewReaderSize(rd, size),
+		buf:    "", //new(bytes.Buffer),
+		lineNo: 1,
+		chrPos: 0,
+	}
 }
 
 func (l *Lexer) emit(typ tokenType) *Token {
-	return &Token{typ, "", 0, l.lineNo, l.chrPos}
+	//return &Token{typ, l.buf.String(), 0, l.lineNo, l.chrPos}
+	return &Token{typ, l.buf, 0, l.lineNo, l.chrPos}
 }
 
-func (l *Lexer) error(msg string) *Token {
-	return &Token{ERROR, msg, 0, l.lineNo, l.chrPos}
-}
+// func (l *Lexer) error(msg string) *Token {
+// 	return &Token{ERROR, msg, 0, l.lineNo, l.chrPos}
+// }
 
 func (l *Lexer) read() rune {
-	c, _, err := l.reader.ReadRune()
+	r, _, err := l.rd.ReadRune()
 	if err != nil {
 		return eof
 	}
-	return c
+	if r == '\n' {
+		l.lineNo++
+		l.chrPos = 0
+	} else {
+		l.chrPos++
+	}
+	//l.buf.WriteRune(r)
+	//fmt.Printf("Buffer Write [%q] + [%q]\n", l.buf, r)
+	l.buf = l.buf + string(r)
+	l.bufLen++
+	//fmt.Printf("Buffer Write [%q](%d) pos=[%d]\n", l.buf, l.bufLen, l.chrPos)
+	return r
 }
 
 func (l *Lexer) unread() {
-	l.reader.UnreadRune()
+	l.rd.UnreadRune()
+	if l.buf[len(l.buf)-1] == '\n' {
+		l.lineNo--
+	}
+	l.chrPos--
+	//l.buf.ReadRune()
+	//fmt.Printf("Buffer Unwrite [%q] last is [%q]\n", l.buf, l.buf[len(l.buf)-1])
+	l.buf = l.buf[:len(l.buf)-1]
+	l.bufLen--
+	//fmt.Printf("Buffer Unwrite [%q]\n", l.buf)
 }
 
 func (l *Lexer) peek() rune {
@@ -120,37 +131,46 @@ func (l *Lexer) backup(n int) {
 	}
 }
 
-func (l *Lexer) acceptAny(v string) bool {
-	if strings.IndexRune(v, l.read()) >= 0 {
+func (l *Lexer) oneOf(v string) bool {
+	r := l.read()
+	//fmt.Printf("[%q] oneOf [%q]\n", r, v)
+	if strings.IndexRune(v, r) >= 0 {
 		return true
 	}
 	l.unread()
 	return false
 }
 
-func (l *Lexer) acceptAnySeq(v string) bool {
-	for l.acceptAny(v) {
+func (l *Lexer) manyOf(v string) bool {
+	for l.oneOf(v) {
 	}
-	l.unread()
+	return true
+}
+
+func (l *Lexer) atLeastOneOf(v string) bool {
+	if l.oneOf(v) {
+		return l.manyOf(v)
+	}
 	return false
 }
 
-// TODO: backup should work without a number of repetitions if we condiser the
-//       word consumed so far.
 func (l *Lexer) acceptSeq(s string) bool {
-	n := 0
 	for i, r := range s {
+		//fmt.Printf("[%q] in seq [%s][%d]?\n", r, s, i)
 		if !l.acceptRune(r) {
-			n = i + 1
-			break
+			l.backup(i)
+			//fmt.Printf(" No\n")
+			return false
 		}
+		//fmt.Printf(" Yes\n")
 	}
-	l.backup(n)
-	return false
+	return true
 }
 
 func (l *Lexer) acceptRune(r rune) bool {
-	if l.read() == r {
+	c := l.read()
+	//fmt.Printf("acceptRune c=[%q] ? r=[%q]\n", c, r)
+	if c == r {
 		return true
 	}
 	l.unread()
@@ -168,7 +188,6 @@ func (l *Lexer) acceptFunc(p func(rune) bool) bool {
 func (l *Lexer) acceptFuncSeq(p func(rune) bool) bool {
 	for l.acceptFunc(p) {
 	}
-	l.unread()
 	return false
 }
 
@@ -222,44 +241,89 @@ func isAlphaNum(c rune) bool {
 	return isAlpha(c) || isDigit(c)
 }
 
+func (l *Lexer) Reset() {
+	// for i := 0; i < l.bufLen; i++ {
+	// 	l.rd.UnreadRune()
+	// }
+	//l.buf.Reset()
+	l.buf = ""
+	l.bufLen = 0
+}
+
 // Next returns the next token in the stream.
 func (l *Lexer) Next() *Token {
+	l.Reset()
+	// c := l.read()
+	// switch c {
+	// case eof:
+	// 	return l.emit(EOF)
+	// case '[':
+	// 	return l.emit(LBRACKET)
+	// case ']':
+	// 	return l.emit(RBRACKET)
+	// case '/':
+	// 	return l.scanSingleLineComment()
+	// case '%':
+	// 	return l.scanRegister()
+	// case '@':
+	// 	return l.scanSymbol()
+	// }
+	//
+	// if isWhitespace(c) {
+	// 	return l.Next()
+	// }
+	//
+	// if isDigit(c) {
+	// 	d := l.read()
+	// 	if d == 'x' {
+	// 		return l.scanHexNumber()
+	// 	} else if isDigit(d) {
+	// 		return l.scanDecNumber()
+	// 	}
+	// 	return l.emit(ERROR)
+	// }
+	//
+	// if isLowerAlpha(c) {
+	// 	return l.scanCommand()
+	// }
 	if l.acceptRune(eof) {
 		return l.emit(EOF)
 	}
-	if l.acceptRune('\n') {
-		l.lineNo++
+	if l.atLeastOneOf(" \t\r\n") {
+		//l.scanWhitespace()
 		return l.Next()
 	}
-	if l.acceptRune('\r') {
-		return l.Next()
+	if l.acceptRune('[') {
+		return l.emit(LBRACKET)
 	}
-	if l.acceptAny(" \t") {
-		l.scanWhitespace()
+	if l.acceptRune(']') {
+		return l.emit(RBRACKET)
 	}
 	if l.acceptSeq("//") {
-		l.scanSingleLineComment()
+		return l.scanSingleLineComment()
 	}
 	if l.acceptSeq("0x") {
-		l.scanHexNumber()
+		return l.scanHexNumber()
 	}
 	if l.acceptFunc(isDigit) {
-		l.scanDecNumber()
+		return l.scanDecNumber()
 	}
-	// Make registers, commands, conditions, labels return identifer tokens.
 	if l.acceptRune('@') {
-		l.scanSymbol()
+		return l.scanSymbol()
+	}
+	if l.acceptRune('%') {
+		return l.scanRegister()
 	}
 	if l.acceptFunc(isLowerAlpha) {
-		//l.scanComand()
+		return l.scanCommand()
 	}
-	return nil
+	return l.emit(ERROR)
 }
 
-func (l *Lexer) scanWhitespace() *Token {
-	l.acceptAnySeq(" \t")
-	return l.Next()
-}
+// func (l *Lexer) scanWhitespace() *Token {
+// 	l.atLeastOneOf(" \t\r\n")
+// 	return l.Next()
+// }
 
 func (l *Lexer) scanSingleLineComment() *Token {
 	l.acceptUntilAny("\n\r")
@@ -268,12 +332,23 @@ func (l *Lexer) scanSingleLineComment() *Token {
 
 func (l *Lexer) scanHexNumber() *Token {
 	l.acceptFuncSeq(isHexDigit)
-	return l.emit(NUMBER)
+	t := l.emit(NUMBER)
+	n, _ := strconv.ParseInt(t.lexeme[2:], 16, 32)
+	t.number = int32(n)
+	return t
 }
 
 func (l *Lexer) scanDecNumber() *Token {
 	l.acceptFuncSeq(isDigit)
-	return l.emit(NUMBER)
+	t := l.emit(NUMBER)
+	n, _ := strconv.ParseInt(t.lexeme, 10, 32)
+	t.number = int32(n)
+	return t
+}
+
+func (l *Lexer) scanRegister() *Token {
+	l.acceptFuncSeq(isAlphaNum)
+	return l.emit(REGISTER)
 }
 
 func (l *Lexer) scanSymbol() *Token {
@@ -281,14 +356,31 @@ func (l *Lexer) scanSymbol() *Token {
 	return l.emit(SYMBOL)
 }
 
+func (l *Lexer) scanCommand() *Token {
+	l.acceptFuncSeq(isLowerAlpha)
+	return l.emit(COMMAND)
+}
+
+var text = `
+// Toller Test
+// ------------
+@L0
+  add   %0 %1 %2    // Test
+  sll   %0 %0 2
+  // Noch ein Kommentar
+  tst   %0 %0 0xff
+  brlgt @L0
+`
+
 func main() {
-	reader := bufio.NewReader(strings.NewReader(text))
-	l := NewLexer(reader)
-	fmt.Println(l.Next())
-	fmt.Println(l.Next())
-	fmt.Println(l.Next())
-	fmt.Println(l.Next())
-	fmt.Println(l.Next())
-	fmt.Println(l.Next())
-	fmt.Println(l.Next())
+	rd := strings.NewReader(text)
+	l := NewLexer(rd, 2048)
+	for {
+		t := l.Next()
+		fmt.Println(t)
+		if t.typ == EOF {
+			fmt.Println("Done.")
+			break
+		}
+	}
 }
