@@ -1,61 +1,59 @@
 package main
 
 import (
-	"bufio"
 	"bytes"
 	"fmt"
-	"io"
-	"strconv"
 	"strings"
 )
 
-const eof = rune(0)
-
-type tokenType int
-
-const (
-	ERROR tokenType = iota
-	EOF
-	COMMAND
-	REGISTER
-	NUMBER
-	LBRACKET
-	RBRACKET
-	SYMBOL
-	COMMENT
-)
-
-// Token provides a set of attributes for each scanned token.
-type Token struct {
-	typ    tokenType
-	lexeme string
-	lineNo int
-	chrPos int
-}
-
-func (t *Token) String() string {
-	var buf bytes.Buffer
-	switch t.typ {
-	case ERROR:
-		buf.WriteString("ERROR")
-	case EOF:
-		buf.WriteString("EOF")
-	case COMMAND:
-		buf.WriteString("COMMAND")
-	case REGISTER:
-		buf.WriteString("REGISTER")
-	case NUMBER:
-		buf.WriteString("NUMBER")
-	case SYMBOL:
-		buf.WriteString("SYMBOL")
-	case COMMENT:
-		buf.WriteString("COMMENT")
-	}
-	buf.WriteString(" lexeme=[")
-	buf.WriteString(strings.Replace(t.lexeme, "\n", "\\n", -1))
-	buf.WriteString(fmt.Sprintf("] line=[%d] pos=[%d]", t.lineNo, t.chrPos))
-	return buf.String()
-}
+// const eof = rune(0)
+//
+// type tokenType int
+//
+// const (
+// 	ERROR tokenType = iota
+// 	EOF
+// 	COMMAND
+// 	REGISTER
+// 	NUMBER
+// 	LBRACKET
+// 	RBRACKET
+// 	SYMBOL
+// 	COMMENT
+// )
+//
+// // Token provides a set of attributes for each scanned token.
+// type Token struct {
+// 	typ    tokenType
+// 	lexeme string
+//  number int32
+// 	lineNo int
+// 	chrPos int
+// }
+//
+// func (t *Token) String() string {
+// 	var buf bytes.Buffer
+// 	switch t.typ {
+// 	case ERROR:
+// 		buf.WriteString("ERROR")
+// 	case EOF:
+// 		buf.WriteString("EOF")
+// 	case COMMAND:
+// 		buf.WriteString("COMMAND")
+// 	case REGISTER:
+// 		buf.WriteString("REGISTER")
+// 	case NUMBER:
+// 		buf.WriteString("NUMBER")
+// 	case SYMBOL:
+// 		buf.WriteString("SYMBOL")
+// 	case COMMENT:
+// 		buf.WriteString("COMMENT")
+// 	}
+// 	buf.WriteString(" lexeme=[")
+// 	buf.WriteString(strings.Replace(t.lexeme, "\n", "\\n", -1))
+// 	buf.WriteString(fmt.Sprintf("] line=[%d] pos=[%d]", t.lineNo, t.chrPos))
+// 	return buf.String()
+// }
 
 // TODO: Channel für die Ausgabe von Tokens verwenden?
 
@@ -360,64 +358,144 @@ func (t *Token) String() string {
 // 	return l.emit(COMMAND)
 // }
 
+const eof = rune(0)
+
+type tokenType int
+
+const (
+	ERROR tokenType = iota
+	EOF
+	COMMAND
+	REGISTER
+	NUMBER
+	LBRACKET
+	RBRACKET
+	SYMBOL
+	COMMENT
+)
+
+// Token provides a set of attributes for each scanned token.
+type Token struct {
+	typ    tokenType
+	lexeme string
+	lineNo int
+	chrPos int
+}
+
+func (t *Token) String() string {
+	var buf bytes.Buffer
+	switch t.typ {
+	case ERROR:
+		buf.WriteString("ERROR")
+	case EOF:
+		buf.WriteString("EOF")
+	case COMMAND:
+		buf.WriteString("COMMAND")
+	case REGISTER:
+		buf.WriteString("REGISTER")
+	case NUMBER:
+		buf.WriteString("NUMBER")
+	case SYMBOL:
+		buf.WriteString("SYMBOL")
+	case COMMENT:
+		buf.WriteString("COMMENT")
+	}
+	buf.WriteString(" lexeme=[")
+	buf.WriteString(strings.Replace(t.lexeme, "\n", "\\n", -1))
+	buf.WriteString(fmt.Sprintf("] line=[%d] pos=[%d]", t.lineNo, t.chrPos))
+	return buf.String()
+}
+
 type Lexer struct {
-  //lookahead []rune
-  tokens chan *Token
+	//lookahead []rune
+	tokens chan Token
 }
 
-func (l *Lexer) read(v string) rune {
-
+func (l *Lexer) read() rune {
+	return eof
 }
 
-func (l *Lexer) unread(v string) rune {
-
+func (l *Lexer) unread() rune {
+	return eof
 }
 
-func (l *Lexer) peek(v string) rune {
-
+func (l *Lexer) peek() rune {
+	return eof
 }
 
-func (l *Lexer) accept(v string) {
-
+func (l *Lexer) emit(typ tokenType) {
+	l.tokens <- Token{
+		typ: typ,
+	}
 }
 
-func (l *Lexer) acceptSeq(s string) {
-
+func (l *Lexer) error(format string, a ...interface{}) {
+	l.tokens <- Token{
+		typ:    ERROR,
+		lexeme: fmt.Sprintf(format, a),
+	}
 }
 
-func (l *Lexer) atMostOneOf(v string) {
-
-}
-
-func (l *Lexer) atLeastOneOf(v string) {
-
-}
-
-func (l *Lexer) acceptUntil(v string) {
-
-}
-
-// func (l *Lexer) accept(p func(rune)bool) {
+// func (l *Lexer) accept(v string) {
 //
 // }
 //
-// func (l *Lexer) acceptOptional(p func(rune)bool) {
+// func (l *Lexer) acceptSeq(s string) {
 //
 // }
 //
-// func (l *Lexer) acceptZeroOrMore(p func(rune)bool) {
+// func (l *Lexer) atMostOneOf(v string) {
 //
 // }
 //
-// func (l *Lexer) acceptOneOrMore(p func(rune)bool) {
+// func (l *Lexer) atLeastOneOf(v string) {
 //
 // }
 //
-// func (l *Lexer) not(p func(rune)bool) func(rune)bool {
-//   return func(r rune) bool {
-//     return !p(r)
-//   }
+// func (l *Lexer) acceptUntil(v string) {
+//
 // }
+
+type LexingPredicate func(rune) bool
+
+func (l *Lexer) accept(p LexingPredicate, msg string) bool {
+	r := l.read()
+	if p(r) {
+		return true
+	}
+	l.unread()
+	l.error("Unexpected [%q]. Expecting %s.", r, msg)
+	return false
+}
+
+func (l *Lexer) acceptOptional(p LexingPredicate) bool {
+	if r := l.read(); p(r) {
+		return true
+	}
+	l.unread()
+	return false
+}
+
+func (l *Lexer) acceptZeroOrMore(p LexingPredicate) bool {
+	for r := l.read(); p(r) && r != eof; {
+	}
+	l.unread()
+	return true
+}
+
+func (l *Lexer) acceptOneOrMore(p LexingPredicate, msg string) {
+	l.accept(p, msg)
+	l.acceptZeroOrMore(p)
+}
+
+func not(p LexingPredicate) LexingPredicate {
+	return func(r rune) bool {
+		return !p(r)
+	}
+}
+
+// or, and
+
 //
 //// func (l *Lexer) seq(s string) func(rune)bool {
 ////   return func(r rune) bool {
@@ -425,61 +503,62 @@ func (l *Lexer) acceptUntil(v string) {
 ////   }
 //// }
 //
-// func (l *Lexer) any(v string) func(rune)bool {
-//   return func(r rune) bool {
-//     return strings.IndexRune(v, r) >= 0
-//   }
-// }
-//
-// func (l *Lexer) chr(c rune) func(rune)bool {
-//   return func(r rune) bool {
-//     return c == r
-//   }
-// }
+func any(v string) LexingPredicate {
+	return func(r rune) bool {
+		return strings.IndexRune(v, r) >= 0
+	}
+}
 
-func (l *Lexer) emit() {
-  l.tokens <- Token{}
+func chr(c rune) LexingPredicate {
+	return func(r rune) bool {
+		return c == r
+	}
 }
 
 // //[^\n]*\n
 func (l *Lexer) lexComment() {
-  // l.accept("/")
-  // l.accept("/")
-  l.acceptSeq("//")
-  l.acceptUntil("\n")
-  l.emit()
+	// l.accept("/")
+	// l.accept("/")
+	l.acceptSeq("//")
+	l.acceptUntil("\n")
+	l.emit(COMMENT)
 }
 
 // [a-z]+
 func (l *Lexer) lexCommand() {
-  l.atLeastOneOf("a-z")
-  l.emit()
+	l.atLeastOneOf("a-z")
+	l.emit(COMMAND)
 }
 
 // %[0-9]+
 func (l *Lexer) lexRegister() {
-  l.accept("%")
-  l.atLeastOneOf("0123456789")
-  l.emit()
+	//l.accept("%")
+	l.accept(chr('%'), "[%]")
+	//l.atLeastOneOf("0123456789")
+	l.acceptOneOrMore(any("0123456789"), "a decimal digit")
+	l.emit(REGISTER)
 }
 
 // (+|-)?(([0-9]+)|(0x[0-9a-f]+))
 func (l *Lexer) lexNumber() {
-  l.atMostOneOf("+-")
-  d := "0123456789"
-  //if l.accept("0") && l.accept("x") {
-  if l.acceptSeq("0x")
-    d += "abcdef"
-  }
-  l.atLeastOneOf(d)
-  l.emit()
+	//l.atMostOneOf("+-")
+	l.acceptOptional(any("+-"))
+	d := "0123456789"
+	//if l.accept("0") && l.accept("x") {
+	//if l.acceptSeq("0x") {
+	if l.acceptOptional(chr('0')) && l.acceptOptional(chr('x')) {
+		d += "abcdef"
+	}
+	//l.atLeastOneOf(d)
+	l.acceptOneOrMore(any(d), "at least one of [0-9a-f]")
+	l.emit(NUMBER)
 }
 
 // @[a-zA-Z0-9]+
-func (l *Lexer) lexLabel() {
-  l.accept("@")
-  l.atLeastOneOf("a-zA-Z0-9")
-  l.emit()
+func (l *Lexer) lexSymbol() {
+	l.accept("@")
+	l.atLeastOneOf("a-zA-Z0-9")
+	l.emit(SYMBOL)
 }
 
 // state functions
