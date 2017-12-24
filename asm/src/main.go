@@ -406,6 +406,38 @@ func (t *Token) String() string {
 	return buf.String()
 }
 
+func isDigit(c rune) bool {
+	return '0' <= c && c <= '9'
+}
+
+func isBinDigit(c rune) bool {
+	return c == '0' || c == '1'
+}
+
+func isHexDigit(c rune) bool {
+	return isDigit(c) || 'a' <= c && c <= 'f'
+}
+
+func isWhitespace(c rune) bool {
+	return c == ' ' || c == '\n' || c == '\r' || c == '\t'
+}
+
+func isLowerAlpha(c rune) bool {
+	return 'a' <= c && c <= 'z'
+}
+
+func isUpperAlpha(c rune) bool {
+	return 'A' <= c && c <= 'Z'
+}
+
+func isAlpha(c rune) bool {
+	return isLowerAlpha(c) || isUpperAlpha(c) || c == '_' || c == '$'
+}
+
+func isAlphaNum(c rune) bool {
+	return isAlpha(c) || isDigit(c)
+}
+
 type Lexer struct {
 	//lookahead []rune
 	tokens chan Token
@@ -436,25 +468,9 @@ func (l *Lexer) error(format string, a ...interface{}) {
 	}
 }
 
-// func (l *Lexer) accept(v string) {
-//
-// }
-//
-// func (l *Lexer) acceptSeq(s string) {
-//
-// }
-//
-// func (l *Lexer) atMostOneOf(v string) {
-//
-// }
-//
-// func (l *Lexer) atLeastOneOf(v string) {
-//
-// }
-//
-// func (l *Lexer) acceptUntil(v string) {
-//
-// }
+func (l *Lexer) eof() {
+	l.tokens <- Token{typ: EOF}
+}
 
 type LexingPredicate func(rune) bool
 
@@ -494,15 +510,8 @@ func not(p LexingPredicate) LexingPredicate {
 	}
 }
 
-// or, and
+// or, and?
 
-//
-//// func (l *Lexer) seq(s string) func(rune)bool {
-////   return func(r rune) bool {
-////     // Funzt so nicht. Evtl mit lookahead.
-////   }
-//// }
-//
 func any(v string) LexingPredicate {
 	return func(r rune) bool {
 		return strings.IndexRune(v, r) >= 0
@@ -517,53 +526,62 @@ func chr(c rune) LexingPredicate {
 
 // //[^\n]*\n
 func (l *Lexer) lexComment() {
-	// l.accept("/")
-	// l.accept("/")
-	l.acceptSeq("//")
-	l.acceptUntil("\n")
+	l.accept(chr('/'), "[/]")
+	l.accept(chr('/'), "[/]")
+	l.acceptZeroOrMore(not(chr('\n')))
 	l.emit(COMMENT)
 }
 
 // [a-z]+
 func (l *Lexer) lexCommand() {
-	l.atLeastOneOf("a-z")
+	l.acceptOneOrMore(isLowerAlpha, "lower case letter")
 	l.emit(COMMAND)
 }
 
 // %[0-9]+
 func (l *Lexer) lexRegister() {
-	//l.accept("%")
 	l.accept(chr('%'), "[%]")
-	//l.atLeastOneOf("0123456789")
-	l.acceptOneOrMore(any("0123456789"), "a decimal digit")
+	l.acceptOneOrMore(isDigit, "a decimal digit")
 	l.emit(REGISTER)
 }
 
 // (+|-)?(([0-9]+)|(0x[0-9a-f]+))
 func (l *Lexer) lexNumber() {
-	//l.atMostOneOf("+-")
 	l.acceptOptional(any("+-"))
-	d := "0123456789"
-	//if l.accept("0") && l.accept("x") {
-	//if l.acceptSeq("0x") {
 	if l.acceptOptional(chr('0')) && l.acceptOptional(chr('x')) {
-		d += "abcdef"
+		l.acceptOneOrMore(isHexDigit, "at least one hexadecimal digit")
+	} else {
+		l.acceptOneOrMore(isDigit, "at least one decimal digit")
 	}
-	//l.atLeastOneOf(d)
-	l.acceptOneOrMore(any(d), "at least one of [0-9a-f]")
 	l.emit(NUMBER)
 }
 
 // @[a-zA-Z0-9]+
 func (l *Lexer) lexSymbol() {
-	l.accept("@")
-	l.atLeastOneOf("a-zA-Z0-9")
+	l.accept(chr('@'), "[@]")
+	l.acceptOneOrMore(isAlphaNum, "letter or number")
 	l.emit(SYMBOL)
 }
 
 // state functions
-func (l *Lexer) next() {
-
+func (l *Lexer) lexNext() {
+	for r := l.peek(); r != eof; {
+		if isWhitespace(r) {
+			continue
+		} else if r == '/' {
+			l.lexComment()
+		} else if isLowerAlpha(r) {
+			l.lexCommand()
+		} else if r == '%' {
+			l.lexRegister()
+		} else if isDigit(r) {
+			l.lexNumber()
+		} else if r == '@' {
+			l.lexSymbol()
+		}
+		l.error("Unexpected [%q]", r)
+	}
+	l.eof()
 }
 
 var text = `
