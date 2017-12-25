@@ -1,8 +1,10 @@
 package main
 
 import (
+	"bufio"
 	"bytes"
 	"fmt"
+	"io"
 	"strings"
 )
 
@@ -439,20 +441,58 @@ func isAlphaNum(c rune) bool {
 }
 
 type Lexer struct {
+	rd *bufio.Reader
 	//lookahead []rune
 	tokens chan Token
+	lineNo int
+	chrPos int
 }
 
 func (l *Lexer) read() rune {
-	return eof
+	r, _, err := l.rd.ReadRune()
+	fmt.Printf("Reading input [%q]\n", r)
+	if err != nil {
+		return eof
+	}
+	// if r == '\n' {
+	// 	l.lineNo++
+	// 	l.chrPos = 0
+	// } else {
+	// 	l.chrPos++
+	// }
+	//l.buf.WriteRune(r)
+	//fmt.Printf("Buffer Write [%q] + [%q]\n", l.buf, r)
+	//l.buf = l.buf + string(r)
+	//l.bufLen++
+	//fmt.Printf("Buffer Write [%q](%d) pos=[%d]\n", l.buf, l.bufLen, l.chrPos)
+	return r
 }
 
-func (l *Lexer) unread() rune {
-	return eof
+func (l *Lexer) unread() {
+	l.rd.UnreadRune()
+	// if l.buf[len(l.buf)-1] == '\n' {
+	// 	l.lineNo--
+	// }
+	// l.chrPos--
+	//l.buf.ReadRune()
+	//fmt.Printf("Buffer Unwrite [%q] last is [%q]\n", l.buf, l.buf[len(l.buf)-1])
+	// l.buf = l.buf[:len(l.buf)-1]
+	// l.bufLen--
+	//fmt.Printf("Buffer Unwrite [%q]\n", l.buf)
 }
 
 func (l *Lexer) peek() rune {
-	return eof
+	r, _, err := l.rd.ReadRune()
+	l.rd.UnreadRune()
+	fmt.Printf("Peek input [%q]\n", r)
+	if err != nil {
+		return eof
+	}
+	return r
+}
+
+func (l *Lexer) ignore() {
+	l.rd.ReadRune()
 }
 
 func (l *Lexer) emit(typ tokenType) {
@@ -547,10 +587,10 @@ func (l *Lexer) lexRegister() {
 
 // (+|-)?(([0-9]+)|(0x[0-9a-f]+))
 func (l *Lexer) lexNumber() {
-	l.acceptOptional(any("+-"))
 	if l.acceptOptional(chr('0')) && l.acceptOptional(chr('x')) {
 		l.acceptOneOrMore(isHexDigit, "at least one hexadecimal digit")
 	} else {
+		l.acceptOptional(any("+-"))
 		l.acceptOneOrMore(isDigit, "at least one decimal digit")
 	}
 	l.emit(NUMBER)
@@ -563,11 +603,11 @@ func (l *Lexer) lexSymbol() {
 	l.emit(SYMBOL)
 }
 
-// state functions
-func (l *Lexer) lexNext() {
+// state functions?
+func (l *Lexer) lex() {
 	for r := l.peek(); r != eof; {
 		if isWhitespace(r) {
-			continue
+			l.ignore()
 		} else if r == '/' {
 			l.lexComment()
 		} else if isLowerAlpha(r) {
@@ -578,10 +618,24 @@ func (l *Lexer) lexNext() {
 			l.lexNumber()
 		} else if r == '@' {
 			l.lexSymbol()
+		} else {
+			l.error("Unexpected [%q]", r)
+			close(l.tokens)
+			return
 		}
-		l.error("Unexpected [%q]", r)
 	}
 	l.eof()
+	close(l.tokens)
+}
+
+func NewLexer(rd io.Reader, size int) *Lexer {
+	return &Lexer{
+		rd: bufio.NewReaderSize(rd, size),
+		//buf:    "", //new(bytes.Buffer),
+		tokens: make(chan Token),
+		lineNo: 1,
+		chrPos: 0,
+	}
 }
 
 var text = `
@@ -598,8 +652,8 @@ var text = `
 func main() {
 	rd := strings.NewReader(text)
 	l := NewLexer(rd, 2048)
-	for {
-		t := l.Next()
+	go l.lex()
+	for t := range l.tokens {
 		fmt.Println(t)
 		if t.typ == EOF {
 			fmt.Println("Done.")
