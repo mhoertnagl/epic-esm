@@ -39,10 +39,10 @@ func convertMap(conMap ConversionMapping, s uint8, p uint8) ConversionFunction {
 	return func(r string, scroll *ErrorScroll) (uint32, bool) {
 		val, ok := conMap.mapping[r]
 		if ok {
-			return place(val, s, p) //, scroll)
+			return place(val, s, p)
 		}
 		if conMap.hasDefValue {
-			return place(conMap.defVal, s, p) //, scroll)
+			return place(conMap.defVal, s, p)
 		}
 		keys := make([]string, len(conMap.mapping))
 		i := 0
@@ -79,7 +79,7 @@ func convertNum(s uint8, p uint8, min int64, max int64) ConversionFunction {
 			scroll.NewError("Unexpected number [%s]. Number must be less than [%d]", n, max)
 			return 0, false
 		}
-		return place(i, s, p) //, scroll)
+		return place(i, s, p)
 	}
 }
 
@@ -89,15 +89,6 @@ func parseNum(n string) (int64, error) {
 	}
 	return strconv.ParseInt(n, 10, 32)
 }
-
-// func place(i int64, s uint8, p uint8, scroll *ErrorScroll) (uint32, bool) {
-// 	j := i & ((1 << p) - 1)
-// 	if j != i {
-// 		scroll.NewError("Cannot represent [%d] with [%d] bits.", i, p)
-// 		return 0, false
-// 	}
-// 	return uint32(j << s), true
-// }
 
 func place(i int64, s uint8, p uint8) (uint32, bool) {
 	return uint32((i & ((1 << p) - 1)) << s), true

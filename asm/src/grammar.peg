@@ -1,0 +1,34 @@
+package main
+
+type EsmParser Peg {
+  
+}
+
+Start <- ws (Instruction / (Label ws) / Comment)* !.
+
+Comment <- '//' (![\n\r] .)* ws
+
+Instruction 
+  <- (Flags ws)? Command Condition? ws Register ws Register ws ('[' ws)? Register ws (']' ws)?
+   / (Flags ws)? Command Condition? ws Register ws Register ws ('[' ws)? Number ws (']' ws)?
+   / (Flags ws)? Command Condition? ws Label ws
+
+Flags <- '!'
+   
+Command <- [a-z][a-z][a-z]
+
+Condition <- [a-z][a-z]
+
+Register <- 'r' ([0-9] / ('1' [1-5]))
+
+Number 
+  <- HexNumber
+   / DecNumber 
+
+DecNumber <- [+-]? [0-9]+ 
+
+HexNumber <- '0x' ([0-9] / [a-f])+
+
+Label <- '@' ([a-z] / [A-Z] / [0-9])+
+
+ws <- [ \n\r\t]*
