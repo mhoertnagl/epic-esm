@@ -1,13 +1,17 @@
-PEG=~/go/bin/peg
+PEG          = ~/go/bin/pigeon
+GRAMMAR_FILE = grammar.peg
 
-run: main.go grammar.peg.go
-	go run main.go grammar.peg.go
+run: main.go parser.go
+	go run $^
 
-build: grammar.peg.go
+build: parser.go
 	go build -o esm
 
-grammar.peg.go: grammar.peg
-	$(PEG) grammar.peg
+parser:
+	$(PEG) -o parser.go $(GRAMMAR_FILE)
+
+parser.go: 
+	$(PEG) -o parser.go $(GRAMMAR_FILE)
 
 clean:
-	rm -f esm debug grammar.peg.go
+	rm -f esm debug parser.go

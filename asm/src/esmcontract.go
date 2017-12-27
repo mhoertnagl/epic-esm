@@ -38,7 +38,6 @@ var registers = ConversionMapping{
 		"r15": 15,
 	},
 	hasDefValue: false,
-	defVal:      0,
 	errorMsg:    "Unexpected register name [%s]. Expecting one of %s.",
 }
 
@@ -64,6 +63,12 @@ var contract = CodeGeneratorContract{
 		"si12": convertSignedNum(4, 12),
 		"ui5":  convertUnsignedNum(4, 5),
 		// "@lbl":    "@[a-zA-Z0-9]",
+	},
+	TranslationTable{
+		"add r r r": {"!? add c? rd ra rb", 0x00000000},
+		"add r r i": {"!? add c? rd ra si12", 0x00000000},
+		"sub r r r": {"!? sub c? rd ra rb", 0x00000000},
+		"sub r r i": {"!? sub c? rd ra si12", 0x00000000},
 	},
 	TranslationTable{
 		"add": {

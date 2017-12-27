@@ -25,7 +25,7 @@ type TranslationEntry struct {
 	template uint32
 }
 
-type TranslationTable map[string][]TranslationEntry
+type TranslationTable map[string]TranslationEntry
 
 type MatchTable map[string]*[]regexp.Regexp
 
