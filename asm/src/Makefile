@@ -1,7 +1,7 @@
 PEG          = ~/go/bin/pigeon
 GRAMMAR_FILE = grammar.peg
 
-run: main.go parser.go
+run: main.go parser.go parserutils.go ast.go symboltable.go
 	go run $^
 
 build: parser.go

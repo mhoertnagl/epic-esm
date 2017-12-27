@@ -70,64 +70,64 @@ var contract = CodeGeneratorContract{
 		"sub r r r": {"!? sub c? rd ra rb", 0x00000000},
 		"sub r r i": {"!? sub c? rd ra si12", 0x00000000},
 	},
-	TranslationTable{
-		"add": {
-			{"c? rd ra rb", 0x00000000},
-			{"c? rd ra si12", 0x00000000}},
-		"sub": {
-			{"c? rd ra rb", 0x00000000},
-			{"c? rd ra si12", 0x00000000}},
-		"mul": {
-			{"c? rd ra rb", 0x00000000},
-			{"c? rd ra si12", 0x00000000}},
-		"div": {
-			{"c? rd ra rb", 0x00000000},
-			{"c? rd ra si12", 0x00000000}},
-		"sll": {
-			{"c? rd ra rb", 0x00000000},
-			{"c? rd ra ui5", 0x00000000}},
-		"srl": {
-			{"c? rd ra rb", 0x00000000},
-			{"c? rd ra ui5", 0x00000000}},
-		"sra": {
-			{"c? rd ra rb", 0x00000000},
-			{"c? rd ra ui5", 0x00000000}},
-		"ror": {
-			{"c? rd ra rb", 0x00000000},
-			{"c? rd ra ui5", 0x00000000}},
-		"and": {
-			{"c? rd ra rb", 0x00000000},
-			{"c? rd ra si12", 0x00000000}},
-		"orr": {
-			{"c? rd ra rb", 0x00000000},
-			{"c? rd ra si12", 0x00000000}},
-		"xor": {
-			{"c? rd ra rb", 0x00000000},
-			{"c? rd ra si12", 0x00000000}},
-		"bcl": { // Bit Clear (a AND NOT b)
-			{"c? rd ra rb", 0x00000000},
-			{"c? rd ra si12", 0x00000000}},
-		"tst": {
-			{"c? rd ra rb", 0x00000000},
-			{"c? rd ra si12", 0x00000000}},
-		// "tst": {
-		//   {"c? rd ra rb", 0x00000000},
-		//   {"c? rd ra si12", 0x00000000}},
-		// "tst": {
-		//   {"c? rd ra rb", 0x00000000},
-		//   {"c? rd ra si12", 0x00000000}},
-		// "tst": {
-		//   {"c? rd ra rb", 0x00000000},
-		//   {"c? rd ra si12", 0x00000000}},
-		"ldw": {
-			{"c? rd ra [ rb ]", 0x00000000},
-			{"c? rd ra [ si12 ]", 0x00000000}},
-		"stw": {
-			{"c? rd ra [ rb ]", 0x00000000},
-			{"c? rd ra [ si12 ]", 0x00000000}},
-		"bra": {
-			{"c? @lbl", 0x00000000}},
-		"brl": {
-			{"c? @lbl", 0x00000000}},
-	},
+	// TranslationTable{
+	// 	"add": {
+	// 		{"c? rd ra rb", 0x00000000},
+	// 		{"c? rd ra si12", 0x00000000}},
+	// 	"sub": {
+	// 		{"c? rd ra rb", 0x00000000},
+	// 		{"c? rd ra si12", 0x00000000}},
+	// 	"mul": {
+	// 		{"c? rd ra rb", 0x00000000},
+	// 		{"c? rd ra si12", 0x00000000}},
+	// 	"div": {
+	// 		{"c? rd ra rb", 0x00000000},
+	// 		{"c? rd ra si12", 0x00000000}},
+	// 	"sll": {
+	// 		{"c? rd ra rb", 0x00000000},
+	// 		{"c? rd ra ui5", 0x00000000}},
+	// 	"srl": {
+	// 		{"c? rd ra rb", 0x00000000},
+	// 		{"c? rd ra ui5", 0x00000000}},
+	// 	"sra": {
+	// 		{"c? rd ra rb", 0x00000000},
+	// 		{"c? rd ra ui5", 0x00000000}},
+	// 	"ror": {
+	// 		{"c? rd ra rb", 0x00000000},
+	// 		{"c? rd ra ui5", 0x00000000}},
+	// 	"and": {
+	// 		{"c? rd ra rb", 0x00000000},
+	// 		{"c? rd ra si12", 0x00000000}},
+	// 	"orr": {
+	// 		{"c? rd ra rb", 0x00000000},
+	// 		{"c? rd ra si12", 0x00000000}},
+	// 	"xor": {
+	// 		{"c? rd ra rb", 0x00000000},
+	// 		{"c? rd ra si12", 0x00000000}},
+	// 	"bcl": { // Bit Clear (a AND NOT b)
+	// 		{"c? rd ra rb", 0x00000000},
+	// 		{"c? rd ra si12", 0x00000000}},
+	// 	"tst": {
+	// 		{"c? rd ra rb", 0x00000000},
+	// 		{"c? rd ra si12", 0x00000000}},
+	// 	// "tst": {
+	// 	//   {"c? rd ra rb", 0x00000000},
+	// 	//   {"c? rd ra si12", 0x00000000}},
+	// 	// "tst": {
+	// 	//   {"c? rd ra rb", 0x00000000},
+	// 	//   {"c? rd ra si12", 0x00000000}},
+	// 	// "tst": {
+	// 	//   {"c? rd ra rb", 0x00000000},
+	// 	//   {"c? rd ra si12", 0x00000000}},
+	// 	"ldw": {
+	// 		{"c? rd ra [ rb ]", 0x00000000},
+	// 		{"c? rd ra [ si12 ]", 0x00000000}},
+	// 	"stw": {
+	// 		{"c? rd ra [ rb ]", 0x00000000},
+	// 		{"c? rd ra [ si12 ]", 0x00000000}},
+	// 	"bra": {
+	// 		{"c? @lbl", 0x00000000}},
+	// 	"brl": {
+	// 		{"c? @lbl", 0x00000000}},
+	// },
 }

@@ -1,109 +1,38 @@
 {
   package main
-
-  type Comment struct {}
-
-  type Instruction struct {
-    set bool
-    cmd string
-    cnd string
-    rd *Register
-    ra *Register
-    rb *Register
-    num *Number
-    lbl *Label
-  }
-
-  type Register struct {
-    name string
-  }
-
-  type Number struct {
-    value int32
-  }
-
-  type Label struct {
-    name string
-  }
-
-  type Identifer struct {
-    value string
-  }
-  
-  func Forward(obj interface{}) (interface{}, error) {
-    return obj, nil
-  }
-
-  func NewNumber(s []byte, base int) (*Number, error) {
-    n, err := strconv.ParseInt(string(s), base, 32)
-    return &Number{ value: int32(n) }, err 
-  }
-  
-  func NewString(s []byte) (*Identifer, error) {
-    return &Identifer{ value: string(s) }, nil
-  }
-  
-  func NewLabel(s []byte) (*Label, error) {
-    return &Label{ name: string(s) }, nil
-  }
-  
-  func NewRegister(s []byte) (*Register, error) {
-    return &Register{ name: string(s) }, nil
-  }
-  
-  func NewRegInstruction(cmd *Identifer, rd *Register, ra *Register, rb *Register,) (*Instruction, error) {
-    return &Instruction{
-      //set: flags.(bool),
-      cmd: cmd.value,
-      //cnd: cnd.(*Identifer).value,
-      rd: rd,
-      ra: ra,
-      rb: rb,
-    }, nil
-  }
-  
-  func NewImmInstruction(cmd *Identifer, rd *Register, ra *Register, num *Number) (*Instruction, error) {
-    return &Instruction{
-      cmd: cmd.value,
-      //cnd: cnd.(*Identifer).value,
-      rd: rd,
-      ra: ra,
-      num: num,
-    }, nil
-  }
-  
-  func NewLabelInstruction(cmd *Identifer, lbl *Label) (*Instruction, error) {
-    return &Instruction{
-      cmd: cmd.value,
-      //cnd: cnd.(*Identifer).value,
-      lbl: lbl,
-    }, nil
-  }
 }
 
 Start 
-  <- ws (
-       ins:Instruction Comment? { return Forward(ins) }
-     / lbl:Label                { return Forward(lbl) }
-     / comment:Comment          { return Forward(comment) }
+  <- _ (
+       ins:Instruction Comment?      { return Forward(ins) }
+     / lbl:Label                     { return Forward(lbl) }
+     / comment:Comment               { return Forward(comment) }
    ) !.
 
-Comment <- "//" (![\n\r] .)* ws { return &Comment{}, nil }
-
 Instruction 
-  <- flags:(Flags ws)? cmd:Command cnd:Condition? ws rd:Register ws ra:Register ws ('[' ws)? rb:Register ws (']' ws)? {
-        return NewRegInstruction(cmd.(*Identifer), rd.(*Register), ra.(*Register), rb.(*Register))
-      }
-   / flags:(Flags ws)? cmd:Command cnd:Condition? ws rd:Register ws ra:Register ws ('[' ws)? num:Number ws (']' ws)? {
-        return NewImmInstruction(cmd.(*Identifer), rd.(*Register), ra.(*Register), num.(*Number))
-      }
-   / cmd:Command cnd:Condition? ws lbl:Label ws { 
-        return NewLabelInstruction(cmd.(*Identifer), lbl.(*Label)) 
-      }
-
-Flags <- '!'                          { return true, nil }
+  <- cmd:Command _
+     rd:Register _ 
+     ra:Register _ 
+     ('[' _)? 
+     rb:Register _ 
+     (']' _)?                         { return NewRegInstruction(cmd.(*Command), rd.(*Register), ra.(*Register), rb.(*Register)) }
    
-Command <- [a-z][a-z][a-z]            { return NewString(c.text) }
+   / cmd:Command _
+     rd:Register _ 
+     ra:Register _ 
+     ('[' _)? 
+     num:Number _ 
+     (']' _)?                         { return NewImmInstruction(cmd.(*Command), rd.(*Register), ra.(*Register), num.(*Number)) }
+
+   / cmd:Command _ 
+     lbl:Label _                      { return NewBraInstruction(cmd.(*Command), lbl.(*Label)) }
+
+Command 
+  <- set:'!'? _
+     cmd:Mnemonic 
+     cnd:Condition?                   { return NewCommand(set, cmd, cnd) }
+
+Mnemonic <- [a-z][a-z][a-z]           { return NewString(c.text) }
 
 Condition <- [a-z][a-z]               { return NewString(c.text) }
 
@@ -117,4 +46,6 @@ HexNumber <- "0x" ([0-9] / [a-f])+    { return NewNumber(c.text[2:], 16) }
 
 Label <- '@' ([a-z] / [A-Z] / [0-9])+ { return NewLabel(c.text) }
 
-ws <- [ \n\r\t]*
+Comment <- "//" (![\n\r] .)* _        { return NewComment() }
+
+_ "whitespace" <- [ \n\r\t]*
