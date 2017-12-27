@@ -1,7 +1,5 @@
 package main
 
-import "strconv"
-
 type Comment struct{}
 
 type Command struct {
@@ -34,7 +32,8 @@ type Register struct {
 }
 
 type Number struct {
-	value int32
+	base  int
+	value string
 }
 
 type Label struct {
@@ -46,8 +45,7 @@ type Identifer struct {
 }
 
 func NewNumber(s []byte, base int) (*Number, error) {
-	n, err := strconv.ParseInt(string(s), base, 32)
-	return &Number{int32(n)}, err
+	return &Number{base, string(s)}, nil
 }
 
 func NewComment() (*Comment, error) {

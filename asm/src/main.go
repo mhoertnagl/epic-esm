@@ -7,7 +7,13 @@ import (
 	"os"
 )
 
-func scanSymbols(path string, file *os.File) SymbolTable {
+func scanSymbols(filename string) SymbolTable {
+	file, err := os.Open(filename)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer file.Close()
+
 	scanner := bufio.NewScanner(file)
 	lineNo := uint32(1)
 	ip := uint32(0)
@@ -19,9 +25,7 @@ func scanSymbols(path string, file *os.File) SymbolTable {
 			log.Fatal(err)
 		}
 
-		fmt.Println(scanner.Text())
-
-		root, err := Parse(path, scanner.Bytes())
+		root, err := Parse(filename, scanner.Bytes())
 		if err != nil {
 			fmt.Println(err)
 			continue
@@ -45,53 +49,42 @@ func scanSymbols(path string, file *os.File) SymbolTable {
 	return t
 }
 
-func compile(path string, file *os.File, t SymbolTable) SymbolTable {
-	scanner := bufio.NewScanner(file)
-	lineNo := uint32(1)
-	ip := uint32(0)
+func compile(filename string, st SymbolTable) {
+	gen := NewCodeGen(filename, st)
 
+	file, err := os.Open(filename)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer file.Close()
+
+	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
 
 		if err := scanner.Err(); err != nil {
 			log.Fatal(err)
 		}
 
-		root, err := Parse(path, scanner.Bytes())
+		root, err := Parse(filename, scanner.Bytes())
 		if err != nil {
 			fmt.Println(err)
 			continue
 		}
 
 		node := root.([]interface{})[1]
-		switch node.(type) {
-		case *RegInstruction:
-			ip++
-			break
-		case *ImmInstruction:
-			ip++
-			break
-		case *BraInstruction:
-			ip++
-			break
-		default:
-			break
+		code, ok := gen.Generate(node)
+		if ok {
+			fmt.Printf("0x%08x  %s\n", code, scanner.Text())
 		}
-
-		lineNo++
 	}
-	return t
 }
 
 func main() {
-	path := "examples/test.esm"
-	file, err := os.Open(path)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer file.Close()
+	filename := "examples/test.esm"
 
-	t := scanSymbols(path, file)
+	st := scanSymbols(filename)
+	compile(filename, st)
 
 	fmt.Println("Symbol Table:")
-	fmt.Println(t)
+	fmt.Println(st)
 }

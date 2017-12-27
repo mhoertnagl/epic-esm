@@ -42,7 +42,7 @@ Number <- num:(HexNumber / DecNumber) { return Forward(num) }
 
 DecNumber <- [+-]? [0-9]+             { return NewNumber(c.text, 10) }
 
-HexNumber <- "0x" ([0-9] / [a-f])+    { return NewNumber(c.text[2:], 16) }
+HexNumber <- "0x" ([0-9] / [a-f])+    { return NewNumber(c.text, 16) }
 
 Label <- '@' ([a-z] / [A-Z] / [0-9])+ { return NewLabel(c.text) }
 
