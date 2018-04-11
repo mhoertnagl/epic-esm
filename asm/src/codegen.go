@@ -34,14 +34,14 @@ var registers = map[string]uint32{
 }
 
 var conditions = map[string]uint32{
-	"al": 0,
+	"nv": 0,
 	"eq": 1,
-	"ne": 2,
-	"gt": 3,
-	"lt": 4,
+	"lt": 2,
+	"le": 3,
+	"gt": 4,
 	"ge": 5,
-	"le": 6,
-	"nv": 7,
+	"ne": 6,
+	"al": 7,
 }
 
 type CodeGen struct {

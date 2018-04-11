@@ -46,6 +46,6 @@ HexNumber <- "0x" ([0-9] / [a-f])+    { return NewNumber(c.text, 16) }
 
 Label <- '@' ([a-z] / [A-Z] / [0-9])+ { return NewLabel(c.text) }
 
-Comment <- "//" (![\n\r] .)* _        { return NewComment() }
+Comment <- "//" [^\n\r]*              { return NewComment() }
 
 _ "whitespace" <- [ \n\r\t]*

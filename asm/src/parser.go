@@ -630,28 +630,13 @@ var g = &grammar{
 						},
 						&zeroOrMoreExpr{
 							pos: position{line: 49, col: 17, offset: 1433},
-							expr: &seqExpr{
-								pos: position{line: 49, col: 18, offset: 1434},
-								exprs: []interface{}{
-									&notExpr{
-										pos: position{line: 49, col: 18, offset: 1434},
-										expr: &charClassMatcher{
-											pos:        position{line: 49, col: 19, offset: 1435},
-											val:        "[\\n\\r]",
-											chars:      []rune{'\n', '\r'},
-											ignoreCase: false,
-											inverted:   false,
-										},
-									},
-									&anyMatcher{
-										line: 49, col: 26, offset: 1442,
-									},
-								},
+							expr: &charClassMatcher{
+								pos:        position{line: 49, col: 17, offset: 1433},
+								val:        "[^\\n\\r]",
+								chars:      []rune{'\n', '\r'},
+								ignoreCase: false,
+								inverted:   true,
 							},
-						},
-						&ruleRefExpr{
-							pos:  position{line: 49, col: 30, offset: 1446},
-							name: "_",
 						},
 					},
 				},

@@ -1,0 +1,104 @@
+// -----------------------------------------------------------------------------
+// 
+// -----------------------------------------------------------------------------
+
+nop       <-> sllnv r0 r0  0  // Nothingness.
+mov rd ra <-> sll   rd ra  0  // rd <- ra
+clr rd    <-> xor   rd rd     // rd <- rd ^ rd (<-> rd = 0)
+inv rd    <-> nor   rd rd     // rd <- ~rd
+neg rd ra <-> mul   rd ra -1  // rd <- -ra
+neg rd    <-> neg   rd rd
+// neg rd    <-> inv   rd        // rd <- -rd
+//               add   rd 1
+swp ra rb <-> xor   ra rb     // ra <- ra ^ rb
+              xor   rb ra     // rb <- rb ^ (ra ^ rb) <-> ra
+              xor   ra rb     // ra <- (ra ^ rb) ^ ra <-> rb
+
+ror rd ra u5 <-> rol rd ra (32 - u5)
+ror rd u5    <-> ror rd rd u5          
+              
+psh rxs <->
+  for ((rx, i) in rxs) {
+    stw rx sp[i]
+  }
+  add sp rxs.len
+  
+pop rxs <->
+  for ((rx, i) in rxs) {
+    ldw rx sp[i]
+  }
+  sub sp rxs.len
+
+// Testing. Special case if cond = nv then setting the condition flags is not 
+// disabled.
+// Funzt nicht so gut wenn man mehrere mit und verknüpfte Bedingungen prüfen
+// will. Wie löst das ARM?
+cmp ra rb  <-> ! subnv ra rb
+cmp ra s16 <-> ! subnv ra s16
+
+// Loading 32 bit constants.
+ldc rd s32 <-> 
+  if s32[31:16] != 0 {
+    ldc rd s32[31:16] << 16
+  } 
+  if s32[15:0] != 0 {
+    ldc rd s32[15:0]
+  }
+
+// Constant loading with lda.
+lda rd @lbl <-> ldc rd sym[@lbl].addr
+
+// Sign of a number.
+sgn rd ra <-> sra rd ra 31
+
+// Read and Write CPU registers.
+
+// C programming language ohne signed/unsigned? (compare unsigned cpu)
+
+// tst ra rb <-> ! andnv ra rb ?
+
+ret ra <-> mov ip ra
+ret <-> ret rp
+
+// Ohne Branch-Delay-Slot
+rtn <-> 
+  add sp 1
+  ldw ip sp[-1]
+
+// Mit Branch-Delay-Slot  
+rtn <->
+  ldw ip sp[0]
+  add sp 1
+
+
+// Meta language
+def r0  = bits 00000
+...
+def r14 = bits 11111
+
+def ra  = r0 | ... | r14
+def rb  = r0 | ... | r14
+def rd  = r0 | ... | r14
+
+def u5  = unsigned 5
+def s12 = signed 12
+def s32 = signed 32
+
+def @lbl = ip-relative 26
+
+def ! = bits 1 
+
+def nv = bits 000
+...
+def al = bits 111
+
+def cond = nv | ... | al default al
+
+def (<< 16) = bits 1
+
+ins [!] add[cond] rd  ra  rb       = pat 000 cond ! 0 rd ra rb 00000000 0000
+ins [!] add[cond] rd  ra s12       = pat 000 cond ! 1 rd ra s12 0000
+ins [!] add[cond] rd  ra           = ins ! add cond rd ra ra
+ins [!] add[cond] rd s16 [(<< 16)] = pat 001 cond ! (<< 16) rd s16 0000
+
+ins     nop                        = ins sllnv r0 r0 0 

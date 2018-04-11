@@ -72,9 +72,22 @@ func compile(filename string, st SymbolTable) {
 		}
 
 		node := root.([]interface{})[1]
-		code, ok := gen.Generate(node)
-		if ok {
-			fmt.Printf("0x%08x  %s\n", code, scanner.Text())
+		switch node.(type) {
+		case *Comment:
+			//comment := node.(*Comment)
+			//fmt.Printf("         @%s\n", comment)
+			fmt.Printf("            %s\n", scanner.Text())
+			break
+		case *Label:
+			label := node.(*Label)
+			fmt.Printf("            %s\n", label.name)
+			break
+		case *RegInstruction, *ImmInstruction, *BraInstruction:
+			code, ok := gen.Generate(node)
+			if ok {
+				fmt.Printf("0x%08x  %s\n", code, scanner.Text())
+			}
+			break
 		}
 	}
 }
