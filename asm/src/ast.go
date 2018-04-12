@@ -2,33 +2,36 @@ package main
 
 type Comment struct{}
 
-type Command struct {
+type RegInstruction struct {
 	set bool
 	cmd string
 	cnd string
+	rd  string
+	ra  string
+	rb  string
 }
 
-type RegInstruction struct {
-	cmd *Command
-	rd  *Register
-	ra  *Register
-	rb  *Register
+type I12Instruction struct {
+	set bool
+	cmd string
+	cnd string
+	rd  string
+	ra  string
+	num *Number
 }
 
-type ImmInstruction struct {
-	cmd *Command
-	rd  *Register
-	ra  *Register
+type I16Instruction struct {
+	set bool
+	cmd string
+	cnd string
+	rd  string
 	num *Number
 }
 
 type BraInstruction struct {
-	cmd *Command
+	cmd string
+	cnd string
 	lbl *Label
-}
-
-type Register struct {
-	name string
 }
 
 type Number struct {
@@ -38,10 +41,6 @@ type Number struct {
 
 type Label struct {
 	name string
-}
-
-type Identifer struct {
-	value string
 }
 
 func NewNumber(s []byte, base int) (*Number, error) {
@@ -56,18 +55,6 @@ func NewLabel(s []byte) (*Label, error) {
 	return &Label{string(s)}, nil
 }
 
-func NewRegister(s []byte) (*Register, error) {
-	return &Register{string(s)}, nil
-}
-
-func NewCommand(set interface{}, cmd interface{}, cnd interface{}) (*Command, error) {
-	return &Command{asString(set, "") == "!", asString(cmd, ""), asString(cnd, "al")}, nil
-}
-
-func NewRegInstruction(cmd *Command, rd *Register, ra *Register, rb *Register) (*RegInstruction, error) {
-	return &RegInstruction{cmd, rd, ra, rb}, nil
-}
-
 func NewRegInstr(
 	set interface{},
 	cmd interface{},
@@ -75,47 +62,51 @@ func NewRegInstr(
 	rd interface{},
 	ra interface{},
 	rb interface{}) (*RegInstruction, error) {
-	command, _ := NewCommand(set, cmd, cnd)
 	return &RegInstruction{
-		command,
-		rd.(*Register),
-		ra.(*Register),
-		rb.(*Register)}, nil
+		asString(set, "") == "!",
+		asString(cmd, ""),
+		asString(cnd, "al"),
+		asString(rd, ""),
+		asString(ra, ""),
+		asString(rb, "")}, nil
 }
 
-func NewImm12Instr(
+func NewI12Instr(
 	set interface{},
 	cmd interface{},
 	cnd interface{},
 	rd interface{},
 	ra interface{},
-	num interface{}) (*ImmInstruction, error) {
-	command, _ := NewCommand(set, cmd, cnd)
-	return &ImmInstruction{
-		command,
-		rd.(*Register),
-		ra.(*Register),
+	num interface{}) (*I12Instruction, error) {
+	return &I12Instruction{
+		asString(set, "") == "!",
+		asString(cmd, ""),
+		asString(cnd, "al"),
+		asString(rd, ""),
+		asString(ra, ""),
 		num.(*Number)}, nil
 }
 
-func NewImm16Instr(
+func NewI16Instr(
 	set interface{},
 	cmd interface{},
 	cnd interface{},
 	rd interface{},
-	num interface{}) (*ImmInstruction, error) {
-	command, _ := NewCommand(set, cmd, cnd)
-	return &ImmInstruction{
-		command,
-		rd.(*Register),
-		rd.(*Register),
+	num interface{}) (*I16Instruction, error) {
+	return &I16Instruction{
+		asString(set, "") == "!",
+		asString(cmd, ""),
+		asString(cnd, "al"),
+		asString(rd, ""),
 		num.(*Number)}, nil
 }
 
-func NewImmInstruction(cmd *Command, rd *Register, ra *Register, num *Number) (*ImmInstruction, error) {
-	return &ImmInstruction{cmd, rd, ra, num}, nil
-}
-
-func NewBraInstruction(cmd *Command, lbl *Label) (*BraInstruction, error) {
-	return &BraInstruction{cmd, lbl}, nil
+func NewBraInstr(
+	cmd interface{},
+	cnd interface{},
+	lbl interface{}) (*BraInstruction, error) {
+	return &BraInstruction{
+		asString(cmd, ""),
+		asString(cnd, "al"),
+		lbl.(*Label)}, nil
 }

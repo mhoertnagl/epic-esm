@@ -4,9 +4,46 @@ import "fmt"
 
 var dataInstructions = map[string]uint32{
 	"add": 0x00000000,
-	"sll": 0x00000000,
-	"tst": 0x00000000,
-	"stw": 0x00000000,
+	"sub": 0x00000001,
+	"mul": 0x00000002,
+	"div": 0x00000003,
+
+	"and": 0x00000004,
+	"oor": 0x00000005,
+	"xor": 0x00000006,
+	"nor": 0x00000007,
+
+	//"tst": 0x00000008,
+	"cmp": 0x00000009,
+	//"add": 0x0000000a,
+	//"add": 0x0000000b,
+
+	"sll": 0x0000000c,
+	"rol": 0x0000000d,
+	"srl": 0x0000000e,
+	"sra": 0x0000000f,
+}
+
+var immInstructions = map[string]uint32{
+	"add": 0x00000000,
+	"sub": 0x00000001,
+	"mul": 0x00000002,
+	"div": 0x00000003,
+
+	"and": 0x00000004,
+	"oor": 0x00000005,
+	"xor": 0x00000006,
+	"nor": 0x00000007,
+
+	//"tst": 0x00000008,
+	"cmp": 0x00000009,
+	//"add": 0x0000000a,
+	//"add": 0x0000000b,
+
+	"ldc": 0x0000000c,
+	//"rol": 0x0000000d,
+	//"srl": 0x0000000e,
+	//"sra": 0x0000000f,
 }
 
 var branchInstructions = map[string]uint32{
@@ -72,8 +109,13 @@ func (g *CodeGen) Generate(node interface{}) (uint32, bool) {
 		ok = true
 		g.ip++
 		break
-	case *ImmInstruction:
-		code = g.genImmInstruction(node.(*ImmInstruction))
+	case *I12Instruction:
+		code = g.genI12Instruction(node.(*I12Instruction))
+		ok = true
+		g.ip++
+		break
+	case *I16Instruction:
+		code = g.genI16Instruction(node.(*I16Instruction))
 		ok = true
 		g.ip++
 		break
@@ -90,53 +132,74 @@ func (g *CodeGen) Generate(node interface{}) (uint32, bool) {
 }
 
 func (g *CodeGen) genRegInstruction(ins *RegInstruction) uint32 {
-	code, ok := dataInstructions[ins.cmd.cmd]
+	code, ok := dataInstructions[ins.cmd]
 	if !ok {
-		g.Error("Unrecognized instruction [%s].", ins.cmd.cmd)
+		g.Error("Unrecognized instruction [%s].", ins.cmd)
 	}
-	// Condition.
-	// !
-	rd, ok := registers[ins.rd.name]
+	if ins.set {
+		code |= place(1, 1, 25)
+	}
+	rd, ok := registers[ins.rd]
 	if !ok {
-		g.Error("unrecognized destination register [%s]", ins.rd.name)
+		g.Error("unrecognized destination register [%s]", ins.rd)
 	}
 	code |= place(int64(rd), 20, 4)
-	ra, ok := registers[ins.ra.name]
+	ra, ok := registers[ins.ra]
 	if !ok {
-		g.Error("unrecognized source A register [%s]", ins.ra.name)
+		g.Error("unrecognized source A register [%s]", ins.ra)
 	}
 	code |= place(int64(ra), 16, 4)
-	rb, ok := registers[ins.rb.name]
+	rb, ok := registers[ins.rb]
 	if !ok {
-		g.Error("unrecognized source B register [%s]", ins.rb.name)
+		g.Error("unrecognized source B register [%s]", ins.rb)
 	}
 	code |= place(int64(rb), 12, 4)
 	return code
 }
 
-func (g *CodeGen) genImmInstruction(ins *ImmInstruction) uint32 {
-	code, ok := dataInstructions[ins.cmd.cmd]
+func (g *CodeGen) genI12Instruction(ins *I12Instruction) uint32 {
+	code, ok := dataInstructions[ins.cmd]
 	if !ok {
-		g.Error("Unrecognized instruction [%s].", ins.cmd.cmd)
+		g.Error("Unrecognized instruction [%s].", ins.cmd)
 	}
-	rd, ok := registers[ins.rd.name]
+	if ins.set {
+		code |= place(1, 1, 25)
+	}
+	rd, ok := registers[ins.rd]
 	if !ok {
-		g.Error("unrecognized destination register [%s]", ins.rd.name)
+		g.Error("unrecognized destination register [%s]", ins.rd)
 	}
 	code |= place(int64(rd), 20, 4)
-	ra, ok := registers[ins.ra.name]
+	ra, ok := registers[ins.ra]
 	if !ok {
-		g.Error("unrecognized source A register [%s]", ins.ra.name)
+		g.Error("unrecognized source A register [%s]", ins.ra)
 	}
 	code |= place(int64(ra), 16, 4)
 	code |= g.convertSignedNum(ins.num.value, 4, 12)
 	return code
 }
 
-func (g *CodeGen) genBraInstruction(ins *BraInstruction) uint32 {
-	code, ok := branchInstructions[ins.cmd.cmd]
+func (g *CodeGen) genI16Instruction(ins *I16Instruction) uint32 {
+	code, ok := immInstructions[ins.cmd]
 	if !ok {
-		g.Error("Unrecognized instruction [%s].", ins.cmd.cmd)
+		g.Error("Unrecognized instruction [%s].", ins.cmd)
+	}
+	if ins.set {
+		code |= place(1, 1, 25)
+	}
+	rd, ok := registers[ins.rd]
+	if !ok {
+		g.Error("unrecognized destination register [%s]", ins.rd)
+	}
+	code |= place(int64(rd), 20, 4)
+	code |= g.convertSignedNum(ins.num.value, 4, 16)
+	return code
+}
+
+func (g *CodeGen) genBraInstruction(ins *BraInstruction) uint32 {
+	code, ok := branchInstructions[ins.cmd]
+	if !ok {
+		g.Error("Unrecognized instruction [%s].", ins.cmd)
 	}
 	sym, ok := g.st.Find(ins.lbl.name)
 	if !ok {

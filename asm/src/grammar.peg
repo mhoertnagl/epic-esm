@@ -10,47 +10,41 @@ Start
    ) !.
 
 Instruction 
-  <- _ set:'!'? _ "add" cnd:Condition? _ rd:Register _ ra:Register _ rb:Register _  { return NewRegInstr(set, "add", cnd, rd, ra, rb) }
-   / _ set:'!'? _ "add" cnd:Condition? _ rd:Register _ ra:Register _ num:Number _   { return NewImm12Instr(set, "add", cnd, rd, ra, num) }
-   / _ set:'!'? _ "add" cnd:Condition? _ rd:Register _ rb:Register _                { return NewRegInstr(set, "add", cnd, rd, rd, rb) }
-   / _ set:'!'? _ "add" cnd:Condition? _ rd:Register _ num:Number _                 { return NewImm16Instr(set, "add", cnd, rd, num) }
-  
-   / cmd:Command _
-     rd:Register _ 
-     ra:Register _ 
-     ('[' _)? 
-     rb:Register _ 
-     (']' _)?                         { return NewRegInstruction(cmd.(*Command), rd.(*Register), ra.(*Register), rb.(*Register)) }
-   
-   / cmd:Command _
-     rd:Register _ 
-     ra:Register _ 
-     ('[' _)? 
-     num:Number _ 
-     (']' _)?                         { return NewImmInstruction(cmd.(*Command), rd.(*Register), ra.(*Register), num.(*Number)) }
+  <- set:'!'? _ op:DatOps cd:Cond? _ rd:Reg _ ra:Reg _ rb:Reg _               { return NewRegInstr(set, op, cd, rd, ra, rb) }
+   / set:'!'? _ op:DatOps cd:Cond? _ rd:Reg _ ra:Reg _ nm:Num _               { return NewI12Instr(set, op, cd, rd, ra, nm) }
+   / set:'!'? _ op:DatOps cd:Cond? _ rd:Reg _ rb:Reg _                        { return NewRegInstr(set, op, cd, rd, rd, rb) }
+   / set:'!'? _ op:ImmOps cd:Cond? _ rd:Reg _ nm:Num up:(_ "<<" _ "16")? _    { return NewI16Instr(set, op, cd, up, rd, nm) }
+   / set:'!'? _ op:CmpOps cd:Cond? _ rd:Reg _ rb:Reg _                        { return NewRegInstr(set, op, cd, rd, rd, rb) }
+   / set:'!'? _ op:CmpOps cd:Cond? _ rd:Reg _ nm:Num _                        { return NewI16Instr(set, op, cd, nil, rd, nm) }
+   / set:'!'? _ op:MemOps cd:Cond? _ rd:Reg _ ra:Reg _ '[' _ rb:Reg _ ']' _   { return NewMemRegInstr(set, op, cd, rd, ra, rb) }
+   / set:'!'? _ op:MemOps cd:Cond? _ rd:Reg _ ra:Reg _ '[' _ nm:Num _ ']' _   { return NewMemI12Instr(set, op, cd, rd, ra, nm) }
+   /            op:BraOps cd:Cond? _ lb:Label _                               { return NewBraInstr(op, cd, lb) }
 
-   / cmd:Command _ 
-     lbl:Label _                      { return NewBraInstruction(cmd.(*Command), lbl.(*Label)) }
+DatOps 
+  <- ("add" / "sub" / "mul" / "div" / "and" / "oor" / "xor" / "nor" 
+   /  "sll" / "rol" / "srl" / "sra")      { return NewString(c.text) }
 
-Command 
-  <- set:'!'? _
-     cmd:Mnemonic 
-     cnd:Condition?                   { return NewCommand(set, cmd, cnd) }
+ ImmOps 
+   <- ("add" / "sub" / "mul" / "div" / "and" / "oor" / "xor" / "nor" / "ldc") { return NewString(c.text) }
 
-Mnemonic <- [a-z][a-z][a-z]           { return NewString(c.text) }
+CmpOps <- "cmp"                           { return NewString(c.text) }
 
-Condition <- [a-z][a-z]               { return NewString(c.text) }
+MemOps <- ("ldw" / "stw")                 { return NewString(c.text) }
 
-Register <- ("sp" / "rp" / "ip" / 'r' [0-9]+)   { return NewRegister(c.text) }
+BraOps <- ("bra" / "brl")                 { return NewString(c.text) }
 
-Number <- num:(HexNumber / DecNumber) { return Forward(num) } 
+Cond <- [a-z][a-z]                        { return NewString(c.text) }
 
-DecNumber <- '-'? [0-9]+              { return NewNumber(c.text, 10) }
+Reg <- ("sp" / "rp" / "ip" / 'r' [0-9]+)  { return NewString(c.text) }
 
-HexNumber <- "0x" [0-9a-f]+           { return NewNumber(c.text, 16) }
+Num <- nm:(HexNum / DecNum)               { return Forward(nm) } 
 
-Label <- '@' [a-zA-Z0-9]+             { return NewLabel(c.text) }
+DecNum <- '-'? [0-9]+                     { return NewNum(c.text, 10) }
 
-Comment <- "//" [^\n\r]*              { return NewComment() }
+HexNum <- "0x" [0-9a-f]+                  { return NewNum(c.text, 16) }
+
+Label <- '@' [a-zA-Z0-9]+                 { return NewLabel(c.text) }
+
+Comment <- "//" [^\n\r]*                  { return NewComment() }
 
 _ "whitespace" <- [ \n\r\t]*
