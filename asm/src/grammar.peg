@@ -10,7 +10,12 @@ Start
    ) !.
 
 Instruction 
-  <- cmd:Command _
+  <- _ set:'!'? _ "add" cnd:Condition? _ rd:Register _ ra:Register _ rb:Register _  { return NewRegInstr(set, "add", cnd, rd, ra, rb) }
+   / _ set:'!'? _ "add" cnd:Condition? _ rd:Register _ ra:Register _ num:Number _   { return NewImm12Instr(set, "add", cnd, rd, ra, num) }
+   / _ set:'!'? _ "add" cnd:Condition? _ rd:Register _ rb:Register _                { return NewRegInstr(set, "add", cnd, rd, rd, rb) }
+   / _ set:'!'? _ "add" cnd:Condition? _ rd:Register _ num:Number _                 { return NewImm16Instr(set, "add", cnd, rd, num) }
+  
+   / cmd:Command _
      rd:Register _ 
      ra:Register _ 
      ('[' _)? 
@@ -36,15 +41,15 @@ Mnemonic <- [a-z][a-z][a-z]           { return NewString(c.text) }
 
 Condition <- [a-z][a-z]               { return NewString(c.text) }
 
-Register <- 'r' ([0-9] / ('1' [1-5])) { return NewRegister(c.text) }
+Register <- ("sp" / "rp" / "ip" / 'r' [0-9]+)   { return NewRegister(c.text) }
 
 Number <- num:(HexNumber / DecNumber) { return Forward(num) } 
 
-DecNumber <- [+-]? [0-9]+             { return NewNumber(c.text, 10) }
+DecNumber <- '-'? [0-9]+              { return NewNumber(c.text, 10) }
 
-HexNumber <- "0x" ([0-9] / [a-f])+    { return NewNumber(c.text, 16) }
+HexNumber <- "0x" [0-9a-f]+           { return NewNumber(c.text, 16) }
 
-Label <- '@' ([a-z] / [A-Z] / [0-9])+ { return NewLabel(c.text) }
+Label <- '@' [a-zA-Z0-9]+             { return NewLabel(c.text) }
 
 Comment <- "//" [^\n\r]*              { return NewComment() }
 

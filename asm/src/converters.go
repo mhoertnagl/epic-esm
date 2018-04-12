@@ -3,8 +3,8 @@ package main
 import "strconv"
 
 const (
-	BRA_MIN = -(1 << 25)
-	BRA_MAX = 1 << 25
+	BRA_MIN = -(1 << 24)
+	BRA_MAX = 1 << 24
 )
 
 func (g *CodeGen) convertSignedNum(n string, s uint8, p uint8) uint32 {
@@ -34,11 +34,11 @@ func (g *CodeGen) convertNum(n string, s uint8, p uint8, min int64, max int64) u
 }
 
 func (g *CodeGen) convertAddr(addr uint32) uint32 {
-	bra := int32(addr - g.ip)
+	bra := int64(addr - g.ip)
 	if bra < BRA_MIN || bra >= BRA_MAX {
 		g.Error("Branch distance [%d] too large.", bra)
 	}
-	return uint32(bra)
+	return place(bra, 0, 25)
 }
 
 func parseNum(n string) (int64, error) {

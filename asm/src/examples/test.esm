@@ -1,10 +1,16 @@
 // Toller Test
-// ------------
-    stw   r8 r0[r4]
+// ------------   
+    add   r9  r10 r11
+    add   r10 r11
+    add   r12 r13 099
+    add   r14 999 
+    add   sp  ip rp
+    stw   r8  r0[r4]
 @L0
-    add   r0 r1 r2 // Test
-  ! sll   r0 r0 2
+    add   r0  r1  r2 // Test
+  ! sll   r0  r0  2
     // Noch ein Kommentar
-    tst   r0 r0 0xff
-    brlgt @L0
-    
+    tst   r0  r0  0xff
+    brlgt @L0 
+@LOOP
+    bra   @LOOP

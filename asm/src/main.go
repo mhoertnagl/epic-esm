@@ -58,6 +58,8 @@ func compile(filename string, st SymbolTable) {
 	}
 	defer file.Close()
 
+	ip := uint32(0)
+
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
 
@@ -74,19 +76,18 @@ func compile(filename string, st SymbolTable) {
 		node := root.([]interface{})[1]
 		switch node.(type) {
 		case *Comment:
-			//comment := node.(*Comment)
-			//fmt.Printf("         @%s\n", comment)
-			fmt.Printf("            %s\n", scanner.Text())
+			fmt.Printf("                        %s\n", scanner.Text())
 			break
 		case *Label:
 			label := node.(*Label)
-			fmt.Printf("            %s\n", label.name)
+			fmt.Printf("                        %s\n", label.name)
 			break
 		case *RegInstruction, *ImmInstruction, *BraInstruction:
 			code, ok := gen.Generate(node)
 			if ok {
-				fmt.Printf("0x%08x  %s\n", code, scanner.Text())
+				fmt.Printf("0x%08x  0x%08x  %s\n", ip, code, scanner.Text())
 			}
+			ip++
 			break
 		}
 	}

@@ -3,7 +3,7 @@
 // -----------------------------------------------------------------------------
 
 // r0 = gcd(r0, r1)
-@gcd
+@Math.gcd
     cmp   r0  r1
     sublt r1  r0
     subgt r0  r1
@@ -12,19 +12,19 @@
 
 // r0 = sign(r1)
 // Already implemented as a single instruction.
-@sign
+@Math.sign
     sgn r0 r1
     ret
     
 // r0 = abs(r1)
-@abs 
+@Math.abs 
     cmp   r1  0
     neglt r1
     mov   r0 r1
     ret
 
 // r2 = zeros(r0)
-@zeros 
+@Math.zeros 
     psh   rp          // Push rp onto stack.
     brl   @ones       // Count the 1s. Result in r2.
     pop   rp          // Restore rp.
@@ -33,11 +33,11 @@
     ret
 
 // r2 = ones(r0)
-@ones 
+@Math.ones 
     clr   r2
-@ones.L0
+@Math.ones.L0
     cmp   r0  0       // Compare against 0.
     addlt r2  1       // If r0 is negatve, then MSB of r0 is a 1. Add one.
     sll   r0  1       // Shift off MSB.
-    brane @ones.L0    // If r0 is not 0, continue to count.
+    brane @Math.ones.L0    // If r0 is not 0, continue to count.
     ret

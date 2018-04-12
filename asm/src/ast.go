@@ -68,6 +68,50 @@ func NewRegInstruction(cmd *Command, rd *Register, ra *Register, rb *Register) (
 	return &RegInstruction{cmd, rd, ra, rb}, nil
 }
 
+func NewRegInstr(
+	set interface{},
+	cmd interface{},
+	cnd interface{},
+	rd interface{},
+	ra interface{},
+	rb interface{}) (*RegInstruction, error) {
+	command, _ := NewCommand(set, cmd, cnd)
+	return &RegInstruction{
+		command,
+		rd.(*Register),
+		ra.(*Register),
+		rb.(*Register)}, nil
+}
+
+func NewImm12Instr(
+	set interface{},
+	cmd interface{},
+	cnd interface{},
+	rd interface{},
+	ra interface{},
+	num interface{}) (*ImmInstruction, error) {
+	command, _ := NewCommand(set, cmd, cnd)
+	return &ImmInstruction{
+		command,
+		rd.(*Register),
+		ra.(*Register),
+		num.(*Number)}, nil
+}
+
+func NewImm16Instr(
+	set interface{},
+	cmd interface{},
+	cnd interface{},
+	rd interface{},
+	num interface{}) (*ImmInstruction, error) {
+	command, _ := NewCommand(set, cmd, cnd)
+	return &ImmInstruction{
+		command,
+		rd.(*Register),
+		rd.(*Register),
+		num.(*Number)}, nil
+}
+
 func NewImmInstruction(cmd *Command, rd *Register, ra *Register, num *Number) (*ImmInstruction, error) {
 	return &ImmInstruction{cmd, rd, ra, num}, nil
 }

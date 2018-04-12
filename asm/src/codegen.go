@@ -10,27 +10,30 @@ var dataInstructions = map[string]uint32{
 }
 
 var branchInstructions = map[string]uint32{
-	"bra": 0x00000000,
-	"brl": 0x00000000,
+	"bra": 0xe0000000,
+	"brl": 0xe2000000,
 }
 
 var registers = map[string]uint32{
 	"r0":  0,
-	"r1":  0,
-	"r2":  0,
-	"r3":  0,
-	"r4":  0,
-	"r5":  0,
-	"r6":  0,
-	"r7":  0,
-	"r8":  0,
-	"r9":  0,
-	"r10": 0,
-	"r11": 0,
-	"r12": 0,
-	"r13": 0,
-	"r14": 0,
-	"r15": 0,
+	"r1":  1,
+	"r2":  2,
+	"r3":  3,
+	"r4":  4,
+	"r5":  5,
+	"r6":  6,
+	"r7":  7,
+	"r8":  8,
+	"r9":  9,
+	"r10": 10,
+	"r11": 11,
+	"r12": 12,
+	"r13": 13,
+	"r14": 14,
+	"r15": 15,
+	"sp":  13,
+	"rp":  14,
+	"ip":  15,
 }
 
 var conditions = map[string]uint32{
@@ -91,6 +94,8 @@ func (g *CodeGen) genRegInstruction(ins *RegInstruction) uint32 {
 	if !ok {
 		g.Error("Unrecognized instruction [%s].", ins.cmd.cmd)
 	}
+	// Condition.
+	// !
 	rd, ok := registers[ins.rd.name]
 	if !ok {
 		g.Error("unrecognized destination register [%s]", ins.rd.name)

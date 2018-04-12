@@ -32,7 +32,7 @@ func (t SymbolTable) Find(label string) (s Symbol, ok bool) {
 func (t SymbolTable) String() string {
 	var buf bytes.Buffer
 	for l, s := range t {
-		buf.WriteString(fmt.Sprintf("%20s: lineNo=[%d] address=[%d]", l, s.lineNo, s.addr))
+		buf.WriteString(fmt.Sprintf("%20s: lineNo=[%d] address=[%d]\n", l, s.lineNo, s.addr))
 	}
 	return buf.String()
 }
