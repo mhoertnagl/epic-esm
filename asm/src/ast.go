@@ -91,6 +91,7 @@ func NewI16Instr(
 	set interface{},
 	cmd interface{},
 	cnd interface{},
+	up interface{},
 	rd interface{},
 	num interface{}) (*I16Instruction, error) {
 	return &I16Instruction{

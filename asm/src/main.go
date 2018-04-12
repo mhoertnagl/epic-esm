@@ -39,7 +39,7 @@ func scanSymbols(filename string) SymbolTable {
 			label := node.(*Label)
 			t.Add(label.name, ip, lineNo)
 			break
-		case *RegInstruction, *ImmInstruction, *BraInstruction:
+		case *RegInstruction, *I12Instruction, *I16Instruction, *BraInstruction:
 			ip++
 			break
 		}
@@ -76,13 +76,13 @@ func compile(filename string, st SymbolTable) {
 		node := root.([]interface{})[1]
 		switch node.(type) {
 		case *Comment:
-			fmt.Printf("                        %s\n", scanner.Text())
+			fmt.Printf("%23s%s\n", "", scanner.Text())
 			break
 		case *Label:
 			label := node.(*Label)
-			fmt.Printf("                        %s\n", label.name)
+			fmt.Printf("%23s%s\n", "", label.name)
 			break
-		case *RegInstruction, *ImmInstruction, *BraInstruction:
+		case *RegInstruction, *I12Instruction, *I16Instruction, *BraInstruction:
 			code, ok := gen.Generate(node)
 			if ok {
 				fmt.Printf("0x%08x  0x%08x  %s\n", ip, code, scanner.Text())

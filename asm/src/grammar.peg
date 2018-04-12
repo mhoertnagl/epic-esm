@@ -6,44 +6,46 @@ Start
   <- _ (
        ins:Instruction Comment?      { return Forward(ins) }
      / lbl:Label                     { return Forward(lbl) }
-     / comment:Comment               { return Forward(comment) }
+     / cmt:Comment                   { return Forward(cmt) }
    ) !.
 
 Instruction 
-  <- set:'!'? _ op:DatOps cd:Cond? _ rd:Reg _ ra:Reg _ rb:Reg _               { return NewRegInstr(set, op, cd, rd, ra, rb) }
-   / set:'!'? _ op:DatOps cd:Cond? _ rd:Reg _ ra:Reg _ nm:Num _               { return NewI12Instr(set, op, cd, rd, ra, nm) }
-   / set:'!'? _ op:DatOps cd:Cond? _ rd:Reg _ rb:Reg _                        { return NewRegInstr(set, op, cd, rd, rd, rb) }
-   / set:'!'? _ op:ImmOps cd:Cond? _ rd:Reg _ nm:Num up:(_ "<<" _ "16")? _    { return NewI16Instr(set, op, cd, up, rd, nm) }
-   / set:'!'? _ op:CmpOps cd:Cond? _ rd:Reg _ rb:Reg _                        { return NewRegInstr(set, op, cd, rd, rd, rb) }
-   / set:'!'? _ op:CmpOps cd:Cond? _ rd:Reg _ nm:Num _                        { return NewI16Instr(set, op, cd, nil, rd, nm) }
-   / set:'!'? _ op:MemOps cd:Cond? _ rd:Reg _ ra:Reg _ '[' _ rb:Reg _ ']' _   { return NewMemRegInstr(set, op, cd, rd, ra, rb) }
-   / set:'!'? _ op:MemOps cd:Cond? _ rd:Reg _ ra:Reg _ '[' _ nm:Num _ ']' _   { return NewMemI12Instr(set, op, cd, rd, ra, nm) }
-   /            op:BraOps cd:Cond? _ lb:Label _                               { return NewBraInstr(op, cd, lb) }
+  <- s:'!'? _ op:DOp cd:Cnd? _ rd:Reg _ ra:Reg _ rb:Reg _               { return NewRegInstr(s, op, cd, rd, ra, rb) }
+   / s:'!'? _ op:DOp cd:Cnd? _ rd:Reg _ ra:Reg _ nm:Num _               { return NewI12Instr(s, op, cd, rd, ra, nm) }
+   / s:'!'? _ op:DOp cd:Cnd? _ rd:Reg _ rb:Reg _                        { return NewRegInstr(s, op, cd, rd, rd, rb) }
+   / s:'!'? _ op:IOp cd:Cnd? _ rd:Reg _ nm:Num up:(_ "<<" _ "16")? _    { return NewI16Instr(s, op, cd, up, rd, nm) }
+   / s:'!'? _ op:COp cd:Cnd? _ rd:Reg _ rb:Reg _                        { return NewRegInstr(s, op, cd, rd, rd, rb) }
+   / s:'!'? _ op:COp cd:Cnd? _ rd:Reg _ nm:Num up:(_ "<<" _ "16")? _    { return NewI16Instr(s, op, cd, up, rd, nm) }   
+   / s:'!'? _ op:COp cd:Cnd? _ rd:Reg _ nm:Num _                        { return NewI16Instr(s, op, cd, nil, rd, nm) }
+   / s:'!'? _ op:MOp cd:Cnd? _ rd:Reg _ ra:Reg _ '[' _ rb:Reg _ ']' _   { return NewMemRegInstr(s, op, cd, rd, ra, rb) }
+   / s:'!'? _ op:MOp cd:Cnd? _ rd:Reg _ ra:Reg _ '[' _ nm:Num _ ']' _   { return NewMemI12Instr(s, op, cd, rd, ra, nm) }
+   /          op:BOp cd:Cnd? _ lb:Label _                               { return NewBraInstr(op, cd, lb) }
 
-DatOps 
+DOp 
   <- ("add" / "sub" / "mul" / "div" / "and" / "oor" / "xor" / "nor" 
    /  "sll" / "rol" / "srl" / "sra")      { return NewString(c.text) }
 
- ImmOps 
-   <- ("add" / "sub" / "mul" / "div" / "and" / "oor" / "xor" / "nor" / "ldc") { return NewString(c.text) }
+IOp <- ("add" / "sub" / "mul" / "div" / "and" / "oor" / "xor" / "nor" / "ldc") { return NewString(c.text) }
 
-CmpOps <- "cmp"                           { return NewString(c.text) }
+COp <- "cmp"                              { return NewString(c.text) }
 
-MemOps <- ("ldw" / "stw")                 { return NewString(c.text) }
+MOp <- ("ldw" / "stw")                    { return NewString(c.text) }
 
-BraOps <- ("bra" / "brl")                 { return NewString(c.text) }
+BOp <- ("bra" / "brl")                    { return NewString(c.text) }
 
-Cond <- [a-z][a-z]                        { return NewString(c.text) }
+Cnd <- [a-z][a-z]                         { return NewString(c.text) }
 
 Reg <- ("sp" / "rp" / "ip" / 'r' [0-9]+)  { return NewString(c.text) }
 
-Num <- nm:(HexNum / DecNum)               { return Forward(nm) } 
+Num <- nm:(BinNum / HexNum / DecNum)      { return Forward(nm) } 
 
-DecNum <- '-'? [0-9]+                     { return NewNum(c.text, 10) }
+BinNum  <- "0b" [01]+                     { return NewNumber(c.text, 2) }
 
-HexNum <- "0x" [0-9a-f]+                  { return NewNum(c.text, 16) }
+HexNum  <- "0x" [0-9a-f]+                 { return NewNumber(c.text, 16) }
 
-Label <- '@' [a-zA-Z0-9]+                 { return NewLabel(c.text) }
+DecNum  <- '-'? [0-9]+                    { return NewNumber(c.text, 10) }
+
+Label   <- '@' [a-zA-Z0-9]+               { return NewLabel(c.text) }
 
 Comment <- "//" [^\n\r]*                  { return NewComment() }
 
