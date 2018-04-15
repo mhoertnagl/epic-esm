@@ -2,51 +2,42 @@
   package main
 }
 
-Start 
+Start
   <- _ (
-       ins:Instruction Comment?      { return Forward(ins) }
-     / lbl:Label                     { return Forward(lbl) }
-     / cmt:Comment                   { return Forward(cmt) }
+       ins:Instr Comment?   { return Forward(ins) }
+     / lbl:Label            { return Forward(lbl) }
+     / cmt:Comment          { return Forward(cmt) }
    ) !.
 
-Instruction 
+Instr   "instruction"
   <- s:'!'? _ op:DOp cd:Cnd? _ rd:Reg _ ra:Reg _ rb:Reg _               { return NewRegInstr(s, op, cd, rd, ra, rb) }
    / s:'!'? _ op:DOp cd:Cnd? _ rd:Reg _ ra:Reg _ nm:Num _               { return NewI12Instr(s, op, cd, rd, ra, nm) }
    / s:'!'? _ op:DOp cd:Cnd? _ rd:Reg _ rb:Reg _                        { return NewRegInstr(s, op, cd, rd, rd, rb) }
    / s:'!'? _ op:IOp cd:Cnd? _ rd:Reg _ nm:Num up:(_ "<<" _ "16")? _    { return NewI16Instr(s, op, cd, up, rd, nm) }
    / s:'!'? _ op:COp cd:Cnd? _ rd:Reg _ rb:Reg _                        { return NewRegInstr(s, op, cd, rd, rd, rb) }
-   / s:'!'? _ op:COp cd:Cnd? _ rd:Reg _ nm:Num up:(_ "<<" _ "16")? _    { return NewI16Instr(s, op, cd, up, rd, nm) }   
+   / s:'!'? _ op:COp cd:Cnd? _ rd:Reg _ nm:Num up:(_ "<<" _ "16")? _    { return NewI16Instr(s, op, cd, up, rd, nm) }
    / s:'!'? _ op:COp cd:Cnd? _ rd:Reg _ nm:Num _                        { return NewI16Instr(s, op, cd, nil, rd, nm) }
    / s:'!'? _ op:MOp cd:Cnd? _ rd:Reg _ ra:Reg _ '[' _ rb:Reg _ ']' _   { return NewMemRegInstr(s, op, cd, rd, ra, rb) }
    / s:'!'? _ op:MOp cd:Cnd? _ rd:Reg _ ra:Reg _ '[' _ nm:Num _ ']' _   { return NewMemI12Instr(s, op, cd, rd, ra, nm) }
    /          op:BOp cd:Cnd? _ lb:Label _                               { return NewBraInstr(op, cd, lb) }
 
-DOp 
-  <- ("add" / "sub" / "mul" / "div" / "and" / "oor" / "xor" / "nor" 
-   /  "sll" / "rol" / "srl" / "sra")      { return NewString(c.text) }
+DOp     "data operator"            <- ("add" / "sub" / "mul" / "div" / "and" / "oor" / "xor" / "nor" / "sll" / "rol" / "srl" / "sra")   { return NewString(c.text) }
+IOp     "16bit immediate operator" <- ("add" / "sub" / "mul" / "div" / "and" / "oor" / "xor" / "nor" / "ldc")                           { return NewString(c.text) }
+COp     "comparison operator"      <- "cmp"                                                                                             { return NewString(c.text) }
+MOp     "memory operator"          <- ("ldw" / "stw")                                                                                   { return NewString(c.text) }
+BOp     "branch operator"          <- ("bra" / "brl")                                                                                   { return NewString(c.text) }
 
-IOp <- ("add" / "sub" / "mul" / "div" / "and" / "oor" / "xor" / "nor" / "ldc") { return NewString(c.text) }
+Cnd     "condition flag"           <- ("nv" / "eq" / "lt" / "le" / "gt" / "ge" / "ne" / "al")                                           { return NewString(c.text) }
 
-COp <- "cmp"                              { return NewString(c.text) }
+Reg     "register"                 <- ("sp" / "rp" / "ip" / 'r' [0-9]+)                                                                 { return NewString(c.text) }
 
-MOp <- ("ldw" / "stw")                    { return NewString(c.text) }
+Num     "number"                   <- nm:(BinNum / HexNum / DecNum)                                                                     { return Forward(nm) }
+BinNum  "binary number"            <- "0b" [01]+                                                                                        { return NewNumber(c.text, 2) }
+HexNum  "hexadecimal number"       <- "0x" [0-9a-f]+                                                                                    { return NewNumber(c.text, 16) }
+DecNum  "decimal number"           <- '-'? [0-9]+                                                                                       { return NewNumber(c.text, 10) }
 
-BOp <- ("bra" / "brl")                    { return NewString(c.text) }
+Label   "label"                    <- '@' [a-zA-Z0-9]+                                                                                  { return NewLabel(c.text) }
 
-Cnd <- [a-z][a-z]                         { return NewString(c.text) }
+Comment                            <- "//" [^\n\r]*                                                                                     { return NewComment() }
 
-Reg <- ("sp" / "rp" / "ip" / 'r' [0-9]+)  { return NewString(c.text) }
-
-Num <- nm:(BinNum / HexNum / DecNum)      { return Forward(nm) } 
-
-BinNum  <- "0b" [01]+                     { return NewNumber(c.text, 2) }
-
-HexNum  <- "0x" [0-9a-f]+                 { return NewNumber(c.text, 16) }
-
-DecNum  <- '-'? [0-9]+                    { return NewNumber(c.text, 10) }
-
-Label   <- '@' [a-zA-Z0-9]+               { return NewLabel(c.text) }
-
-Comment <- "//" [^\n\r]*                  { return NewComment() }
-
-_ "whitespace" <- [ \n\r\t]*
+_       "whitespace"               <- [ \n\r\t]*

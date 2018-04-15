@@ -24,7 +24,26 @@ type I16Instruction struct {
 	set bool
 	cmd string
 	cnd string
+	up  bool
 	rd  string
+	num *Number
+}
+
+type MemRegInstruction struct {
+	set bool
+	cmd string
+	cnd string
+	rd  string
+	ra  string
+	rb  string
+}
+
+type MemI12Instruction struct {
+	set bool
+	cmd string
+	cnd string
+	rd  string
+	ra  string
 	num *Number
 }
 
@@ -63,7 +82,7 @@ func NewRegInstr(
 	ra interface{},
 	rb interface{}) (*RegInstruction, error) {
 	return &RegInstruction{
-		asString(set, "") == "!",
+		set != nil, //asString(set, "") == "!",
 		asString(cmd, ""),
 		asString(cnd, "al"),
 		asString(rd, ""),
@@ -79,7 +98,7 @@ func NewI12Instr(
 	ra interface{},
 	num interface{}) (*I12Instruction, error) {
 	return &I12Instruction{
-		asString(set, "") == "!",
+		set != nil, //asString(set, "") == "!",
 		asString(cmd, ""),
 		asString(cnd, "al"),
 		asString(rd, ""),
@@ -95,10 +114,43 @@ func NewI16Instr(
 	rd interface{},
 	num interface{}) (*I16Instruction, error) {
 	return &I16Instruction{
-		asString(set, "") == "!",
+		set != nil, //asString(set, "") == "!",
+		asString(cmd, ""),
+		asString(cnd, "al"),
+		up != nil,
+		asString(rd, ""),
+		num.(*Number)}, nil
+}
+
+func NewMemRegInstr(
+	set interface{},
+	cmd interface{},
+	cnd interface{},
+	rd interface{},
+	ra interface{},
+	rb interface{}) (*MemRegInstruction, error) {
+	return &MemRegInstruction{
+		set != nil, //asString(set, "") == "!",
 		asString(cmd, ""),
 		asString(cnd, "al"),
 		asString(rd, ""),
+		asString(ra, ""),
+		asString(rb, "")}, nil
+}
+
+func NewMemI12Instr(
+	set interface{},
+	cmd interface{},
+	cnd interface{},
+	rd interface{},
+	ra interface{},
+	num interface{}) (*MemI12Instruction, error) {
+	return &MemI12Instruction{
+		set != nil, //asString(set, "") == "!",
+		asString(cmd, ""),
+		asString(cnd, "al"),
+		asString(rd, ""),
+		asString(ra, ""),
 		num.(*Number)}, nil
 }
 
