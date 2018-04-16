@@ -42,6 +42,9 @@ func (g *CodeGen) convertAddr(addr uint32) uint32 {
 }
 
 func parseNum(n string) (int64, error) {
+	if len(n) > 2 && n[0:2] == "0b" {
+		return strconv.ParseInt(n[2:], 2, 32)
+	}
 	if len(n) > 2 && n[0:2] == "0x" {
 		return strconv.ParseInt(n[2:], 16, 32)
 	}

@@ -5,11 +5,12 @@
 Start
   <- _ (
        ins:Instr Comment?   { return Forward(ins) }
-     / lbl:Label            { return Forward(lbl) }
+     / lbl:Label Comment?   { return Forward(lbl) }
      / cmt:Comment          { return Forward(cmt) }
    ) !.
 
 Instr   "instruction"
+  //<- s:'!'? _ op:([])
   <- s:'!'? _ op:DOp cd:Cnd? _ rd:Reg _ ra:Reg _ rb:Reg _               { return NewRegInstr(s, op, cd, rd, ra, rb) }
    / s:'!'? _ op:DOp cd:Cnd? _ rd:Reg _ ra:Reg _ nm:Num _               { return NewI12Instr(s, op, cd, rd, ra, nm) }
    / s:'!'? _ op:DOp cd:Cnd? _ rd:Reg _ rb:Reg _                        { return NewRegInstr(s, op, cd, rd, rd, rb) }
@@ -32,9 +33,9 @@ Cnd     "condition flag"           <- ("nv" / "eq" / "lt" / "le" / "gt" / "ge" /
 Reg     "register"                 <- ("sp" / "rp" / "ip" / 'r' [0-9]+)                                                                 { return NewString(c.text) }
 
 Num     "number"                   <- nm:(BinNum / HexNum / DecNum)                                                                     { return Forward(nm) }
-BinNum  "binary number"            <- "0b" [01]+                                                                                        { return NewNumber(c.text, 2) }
-HexNum  "hexadecimal number"       <- "0x" [0-9a-f]+                                                                                    { return NewNumber(c.text, 16) }
-DecNum  "decimal number"           <- '-'? [0-9]+                                                                                       { return NewNumber(c.text, 10) }
+BinNum  "binary number"            <- "0b" [01]+                                                                                        { return NewString(c.text) }
+HexNum  "hexadecimal number"       <- "0x" [0-9a-f]+                                                                                    { return NewString(c.text) }
+DecNum  "decimal number"           <- '-'? [0-9]+                                                                                       { return NewString(c.text) }
 
 Label   "label"                    <- '@' [a-zA-Z0-9]+                                                                                  { return NewLabel(c.text) }
 

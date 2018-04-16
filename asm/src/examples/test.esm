@@ -12,7 +12,7 @@
     add   r0  r1  r2 // Test
   ! sll   r0  r0  2
     // Noch ein Kommentar
-    cmp   r0  r0  0xff
+    cmp   r0  0xff
     brlgt @L0 
 
 @LOOP

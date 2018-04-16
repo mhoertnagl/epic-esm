@@ -17,7 +17,7 @@ type I12Instruction struct {
 	cnd string
 	rd  string
 	ra  string
-	num *Number
+	num string
 }
 
 type I16Instruction struct {
@@ -26,7 +26,7 @@ type I16Instruction struct {
 	cnd string
 	up  bool
 	rd  string
-	num *Number
+	num string
 }
 
 type MemRegInstruction struct {
@@ -44,7 +44,7 @@ type MemI12Instruction struct {
 	cnd string
 	rd  string
 	ra  string
-	num *Number
+	num string
 }
 
 type BraInstruction struct {
@@ -53,18 +53,18 @@ type BraInstruction struct {
 	lbl *Label
 }
 
-type Number struct {
-	base  int
-	value string
-}
+// type Number struct {
+// 	base  int
+// 	value string
+// }
 
 type Label struct {
 	name string
 }
 
-func NewNumber(s []byte, base int) (*Number, error) {
-	return &Number{base, string(s)}, nil
-}
+// func NewNumber(s []byte, base int) (*Number, error) {
+// 	return &Number{base, string(s)}, nil
+// }
 
 func NewComment() (*Comment, error) {
 	return &Comment{}, nil
@@ -103,7 +103,7 @@ func NewI12Instr(
 		asString(cnd, "al"),
 		asString(rd, ""),
 		asString(ra, ""),
-		num.(*Number)}, nil
+		asString(num, "")}, nil
 }
 
 func NewI16Instr(
@@ -119,7 +119,7 @@ func NewI16Instr(
 		asString(cnd, "al"),
 		up != nil,
 		asString(rd, ""),
-		num.(*Number)}, nil
+		asString(num, "")}, nil
 }
 
 func NewMemRegInstr(
@@ -151,7 +151,7 @@ func NewMemI12Instr(
 		asString(cnd, "al"),
 		asString(rd, ""),
 		asString(ra, ""),
-		num.(*Number)}, nil
+		asString(num, "")}, nil
 }
 
 func NewBraInstr(

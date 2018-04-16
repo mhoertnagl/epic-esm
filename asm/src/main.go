@@ -2,9 +2,11 @@ package main
 
 import (
 	"bufio"
+	"flag"
 	"fmt"
 	"log"
 	"os"
+	"strings"
 )
 
 func scanSymbols(filename string) SymbolTable {
@@ -67,6 +69,16 @@ func compile(filename string, st SymbolTable) {
 			log.Fatal(err)
 		}
 
+		// fmt.Println("==============================")
+		// fmt.Println(scanner.Text())
+		// fmt.Println("------------------------------")
+
+		if strings.TrimSpace(scanner.Text()) == "" {
+			//fmt.Println("Empty line.")
+			fmt.Println()
+			continue
+		}
+
 		root, err := Parse(filename, scanner.Bytes())
 		if err != nil {
 			fmt.Println(err)
@@ -76,11 +88,11 @@ func compile(filename string, st SymbolTable) {
 		node := root.([]interface{})[1]
 		switch node.(type) {
 		case *Comment:
-			fmt.Printf("%23s%s\n", "", scanner.Text())
+			fmt.Printf("%24s%s\n", "", scanner.Text())
 			break
 		case *Label:
 			label := node.(*Label)
-			fmt.Printf("%23s%s\n", "", label.name)
+			fmt.Printf("%24s%s\n", "", label.name)
 			break
 		case *RegInstruction, *I12Instruction, *I16Instruction, *BraInstruction:
 			code, ok := gen.Generate(node)
@@ -94,10 +106,24 @@ func compile(filename string, st SymbolTable) {
 }
 
 func main() {
-	filename := "examples/test.esm"
+	//outFilePtr := flag.String("o", "x.bin", "an output file")
 
-	st := scanSymbols(filename)
-	compile(filename, st)
+	flag.Parse()
+
+	args := flag.Args()
+
+	if len(args) < 1 {
+		panic("Too few arguments. Provide a single input file.")
+	}
+
+	if len(args) != 1 {
+		panic("Too many arguments. Provide only a single input file.")
+	}
+
+	inFile := args[0]
+
+	st := scanSymbols(inFile)
+	compile(inFile, st)
 
 	fmt.Println("Symbol Table:")
 	fmt.Println(st)
