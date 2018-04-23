@@ -10,7 +10,6 @@ Start
    ) !.
 
 Instr   "instruction"
-  //<- s:'!'? _ op:([])
   <- s:'!'? _ op:DOp cd:Cnd? _ rd:Reg _ ra:Reg _ rb:Reg _               { return NewRegInstr(s, op, cd, rd, ra, rb) }
    / s:'!'? _ op:DOp cd:Cnd? _ rd:Reg _ ra:Reg _ nm:Num _               { return NewI12Instr(s, op, cd, rd, ra, nm) }
    / s:'!'? _ op:DOp cd:Cnd? _ rd:Reg _ rb:Reg _                        { return NewRegInstr(s, op, cd, rd, rd, rb) }
