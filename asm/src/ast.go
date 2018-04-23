@@ -53,18 +53,9 @@ type BraInstruction struct {
 	lbl *Label
 }
 
-// type Number struct {
-// 	base  int
-// 	value string
-// }
-
 type Label struct {
 	name string
 }
-
-// func NewNumber(s []byte, base int) (*Number, error) {
-// 	return &Number{base, string(s)}, nil
-// }
 
 func NewComment() (*Comment, error) {
 	return &Comment{}, nil
@@ -82,7 +73,7 @@ func NewRegInstr(
 	ra interface{},
 	rb interface{}) (*RegInstruction, error) {
 	return &RegInstruction{
-		set != nil, //asString(set, "") == "!",
+		set != nil,
 		asString(cmd, ""),
 		asString(cnd, "al"),
 		asString(rd, ""),
@@ -98,7 +89,7 @@ func NewI12Instr(
 	ra interface{},
 	num interface{}) (*I12Instruction, error) {
 	return &I12Instruction{
-		set != nil, //asString(set, "") == "!",
+		set != nil,
 		asString(cmd, ""),
 		asString(cnd, "al"),
 		asString(rd, ""),
@@ -114,7 +105,7 @@ func NewI16Instr(
 	rd interface{},
 	num interface{}) (*I16Instruction, error) {
 	return &I16Instruction{
-		set != nil, //asString(set, "") == "!",
+		set != nil,
 		asString(cmd, ""),
 		asString(cnd, "al"),
 		up != nil,
@@ -130,7 +121,7 @@ func NewMemRegInstr(
 	ra interface{},
 	rb interface{}) (*MemRegInstruction, error) {
 	return &MemRegInstruction{
-		set != nil, //asString(set, "") == "!",
+		set != nil,
 		asString(cmd, ""),
 		asString(cnd, "al"),
 		asString(rd, ""),
@@ -146,7 +137,7 @@ func NewMemI12Instr(
 	ra interface{},
 	num interface{}) (*MemI12Instruction, error) {
 	return &MemI12Instruction{
-		set != nil, //asString(set, "") == "!",
+		set != nil,
 		asString(cmd, ""),
 		asString(cnd, "al"),
 		asString(rd, ""),
@@ -162,4 +153,17 @@ func NewBraInstr(
 		asString(cmd, ""),
 		asString(cnd, "al"),
 		lbl.(*Label)}, nil
+}
+
+func NewNopInstr(
+	set interface{},
+	cnd interface{}) (*RegInstruction, error) {
+	return NewRegInstr(set, "mov", cnd, "r0", "r0", "r0")
+}
+
+func NewClrInstr(
+	set interface{},
+	cnd interface{},
+	rd interface{}) (*RegInstruction, error) {
+	return NewRegInstr(set, "xor", cnd, rd, rd, rd)
 }

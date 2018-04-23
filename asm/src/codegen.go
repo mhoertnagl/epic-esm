@@ -13,37 +13,15 @@ var dataInstructions = map[string]uint32{
 	"xor": 0x00000006,
 	"nor": 0x00000007,
 
-	//"tst": 0x00000008,
-	"cmp": 0x00000009,
-	//"add": 0x0000000a,
-	//"add": 0x0000000b,
+	"adu": 0x00000008,
+	"sbu": 0x00000009,
+	"mlu": 0x0000000a,
+	"dvu": 0x0000000b,
 
-	"sll": 0x0000000c,
-	"rol": 0x0000000d,
-	"srl": 0x0000000e,
-	"sra": 0x0000000f,
-}
-
-var immInstructions = map[string]uint32{
-	"add": 0x20000000,
-	"sub": 0x20000001,
-	"mul": 0x20000002,
-	"div": 0x20000003,
-
-	"and": 0x20000004,
-	"oor": 0x20000005,
-	"xor": 0x20000006,
-	"nor": 0x20000007,
-
-	//"tst": 0x20000008,
-	"cmp": 0x20000009,
-	//"add": 0x2000000a,
-	//"add": 0x2000000b,
-
-	"ldc": 0x2000000c,
-	//"rol": 0x2000000d,
-	//"srl": 0x2000000e,
-	//"sra": 0x2000000f,
+	"cmp": 0x0000000c,
+	"cpu": 0x0000000d,
+	"tst": 0x0000000e,
+	"mov": 0x0000000f,
 }
 
 var memInstructions = map[string]uint32{
