@@ -156,9 +156,8 @@ func NewBraInstr(
 }
 
 func NewNopInstr(
-	set interface{},
 	cnd interface{}) (*RegInstruction, error) {
-	return NewRegInstr(set, "mov", cnd, "r0", "r0", "r0")
+	return NewRegInstr(nil, "mov", cnd, "r0", "r0", "r0")
 }
 
 func NewClrInstr(

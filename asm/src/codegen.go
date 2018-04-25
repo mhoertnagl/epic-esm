@@ -15,8 +15,8 @@ var dataInstructions = map[string]uint32{
 
 	"adu": 0x00000008,
 	"sbu": 0x00000009,
-	"mlu": 0x0000000a,
-	"dvu": 0x0000000b,
+	//"mlu": 0x0000000a, multiplikation ist immer signed
+	//"dvu": 0x0000000b, division ist immer signed
 
 	"cmp": 0x0000000c,
 	"cpu": 0x0000000d,
@@ -129,14 +129,16 @@ func (g *CodeGen) genI12Instruction(ins *I12Instruction) uint32 {
 	code |= g.placeImmBit()
 	code |= g.placeRd(ins.rd)
 	code |= g.placeRa(ins.ra)
+	// hängt von der operation ab ob signed oder unsigned
 	code |= g.convertSignedNum(ins.num, 4, 12)
 	return code
 }
 
 func (g *CodeGen) genI16Instruction(ins *I16Instruction) uint32 {
-	code := g.placeImmCmd(ins.cmd)
+	code := g.placeDataCmd(ins.cmd)
 	code |= g.placeSetBit(ins.set)
 	code |= g.placeRd(ins.rd)
+	// hängt von der operation ab ob signed oder unsigned
 	code |= g.convertSignedNum(ins.num, 4, 16)
 	return code
 }
@@ -156,14 +158,6 @@ func (g *CodeGen) genBraInstruction(ins *BraInstruction) uint32 {
 
 func (g *CodeGen) placeDataCmd(cmd string) uint32 {
 	code, ok := dataInstructions[cmd]
-	if !ok {
-		g.Error("Unrecognized instruction [%s].", cmd)
-	}
-	return code
-}
-
-func (g *CodeGen) placeImmCmd(cmd string) uint32 {
-	code, ok := immInstructions[cmd]
 	if !ok {
 		g.Error("Unrecognized instruction [%s].", cmd)
 	}
