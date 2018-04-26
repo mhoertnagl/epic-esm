@@ -9,6 +9,12 @@ type RegInstruction struct {
 	rd  string
 	ra  string
 	rb  string
+	sh  *NumShift
+}
+
+type NumShift struct {
+	cmd string
+	num string
 }
 
 type I12Instruction struct {
@@ -71,14 +77,42 @@ func NewRegInstr(
 	cnd interface{},
 	rd interface{},
 	ra interface{},
-	rb interface{}) (*RegInstruction, error) {
+	rb interface{},
+	sh interface{}) (*RegInstruction, error) {
 	return &RegInstruction{
 		set != nil,
 		asString(cmd, ""),
 		asString(cnd, "al"),
 		asString(rd, ""),
 		asString(ra, ""),
-		asString(rb, "")}, nil
+		asString(rb, ""),
+		sh.(*NumShift)}, nil
+}
+
+func NewNumShift(
+	cmd interface{},
+	num interface{}) (*NumShift, error) {
+	return &NumShift{
+		asString(cmd, ""),
+		asString(num, "")}, nil
+}
+
+func NewShiftInstr(
+	set interface{},
+	cmd interface{},
+	cnd interface{},
+	rd interface{},
+	rb interface{},
+	num interface{}) (*RegInstruction, error) {
+	sh, ok := NewNumShift(cmd, num)
+	return &RegInstruction{
+		set != nil,
+		"mov",
+		asString(cnd, "al"),
+		asString(rd, ""),
+		"r0",
+		asString(rb, ""),
+		sh}, nil
 }
 
 func NewI12Instr(

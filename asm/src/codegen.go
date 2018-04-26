@@ -34,6 +34,19 @@ var branchInstructions = map[string]uint32{
 	"brl": 0xe2000000,
 }
 
+var shiftOps = map[string]uint32{
+	"<<":  0,
+	">>":  1,
+	">>>": 2,
+	"<<>": 3,
+	"<>>": 3,
+	"sll": 0,
+	"srl": 1,
+	"sra": 2,
+	"rol": 3,
+	"ror": 3,
+}
+
 var registers = map[string]uint32{
 	"r0":  0,
 	"r1":  1,
@@ -120,6 +133,7 @@ func (g *CodeGen) genRegInstruction(ins *RegInstruction) uint32 {
 	code |= g.placeRd(ins.rd)
 	code |= g.placeRa(ins.ra)
 	code |= g.placeRb(ins.rb)
+	code |= g.placeNumShift(ins.sh)
 	return code
 }
 
@@ -144,15 +158,8 @@ func (g *CodeGen) genI16Instruction(ins *I16Instruction) uint32 {
 }
 
 func (g *CodeGen) genBraInstruction(ins *BraInstruction) uint32 {
-	code, ok := branchInstructions[ins.cmd]
-	if !ok {
-		g.Error("Unrecognized instruction [%s].", ins.cmd)
-	}
-	sym, ok := g.st.Find(ins.lbl.name)
-	if !ok {
-		g.Error("Reference to undefined symbol [%s].", ins.lbl.name)
-	}
-	code |= g.convertAddr(sym.addr)
+	code := g.placeDataCmd(ins.cmd)
+	code |= g.placeBranchAddress(ins.lbl)
 	return code
 }
 
@@ -164,15 +171,23 @@ func (g *CodeGen) placeDataCmd(cmd string) uint32 {
 	return code
 }
 
+func (g *CodeGen) placeBranchCmd(cmd string) uint32 {
+	code, ok := branchInstructions[cmd]
+	if !ok {
+		g.Error("Unrecognized instruction [%s].", cmd)
+	}
+	return code
+}
+
 func (g *CodeGen) placeSetBit(set bool) uint32 {
 	if set {
-		return place(1, 25, 1)
+		return g.place(1, 25, 1)
 	}
 	return 0
 }
 
 func (g *CodeGen) placeImmBit() uint32 {
-	return place(1, 24, 1)
+	return g.place(1, 24, 1)
 }
 
 func (g *CodeGen) placeRd(rdName string) uint32 {
@@ -180,7 +195,7 @@ func (g *CodeGen) placeRd(rdName string) uint32 {
 	if !ok {
 		g.Error("unrecognized destination register [%s]", rdName)
 	}
-	return place(int64(rd), 20, 4)
+	return g.place(int64(rd), 20, 4)
 }
 
 func (g *CodeGen) placeRa(raName string) uint32 {
@@ -188,7 +203,7 @@ func (g *CodeGen) placeRa(raName string) uint32 {
 	if !ok {
 		g.Error("unrecognized source A register [%s]", raName)
 	}
-	return place(int64(ra), 16, 4)
+	return g.place(int64(ra), 16, 4)
 }
 
 func (g *CodeGen) placeRb(rbName string) uint32 {
@@ -196,5 +211,37 @@ func (g *CodeGen) placeRb(rbName string) uint32 {
 	if !ok {
 		g.Error("unrecognized source B register [%s]", rbName)
 	}
-	return place(int64(rb), 12, 4)
+	return g.place(int64(rb), 12, 4)
+}
+
+func (g *CodeGen) placeNumShift(sh *NumShift) uint32 {
+	if sh == nil {
+		return 0
+	}
+	code := g.placeShiftOp(sh.cmd)
+	// Turns a Rotate Right (<>>) into a Rotate Left (<<>). The following
+	// identity holds for all cases: x <>> n <--> x <<> (32 - n)
+	if sh.cmd == "<>>" || sh.cmd == "ror" {
+		shft := g.convertUnsignedNum(sh.num, 0, 5)
+		code |= g.place(int64(32-shft), 4, 5)
+	} else {
+		code |= g.convertUnsignedNum(sh.num, 4, 5)
+	}
+	return code
+}
+
+func (g *CodeGen) placeShiftOp(cmd string) uint32 {
+	sop, ok := shiftOps[cmd]
+	if !ok {
+		g.Error("unrecognized shift operator [%s]", cmd)
+	}
+	return g.place(int64(sop), 2, 9)
+}
+
+func (g *CodeGen) placeBranchAddress(lbl *Label) uint32 {
+	sym, ok := g.st.Find(lbl.name)
+	if !ok {
+		g.Error("Reference to undefined symbol [%s].", lbl.name)
+	}
+	return g.convertAddr(sym.addr)
 }
