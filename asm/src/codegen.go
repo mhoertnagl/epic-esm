@@ -1,6 +1,8 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+)
 
 var dataInstructions = map[string]uint32{
 	"add": 0x00000000,
@@ -96,72 +98,80 @@ func (g *CodeGen) Error(format string, a ...interface{}) {
 	fmt.Printf("%s [%d] ERROR: %s\n", g.filename, g.lineNo, msg)
 }
 
-func (g *CodeGen) Generate(node interface{}) (uint32, bool) {
-	code := uint32(0)
-	ok := false
-	switch node.(type) {
-	case *RegInstruction:
-		code = g.genRegInstruction(node.(*RegInstruction))
-		ok = true
-		g.ip++
-		break
-	case *I12Instruction:
-		code = g.genI12Instruction(node.(*I12Instruction))
-		ok = true
-		g.ip++
-		break
-	case *I16Instruction:
-		code = g.genI16Instruction(node.(*I16Instruction))
-		ok = true
-		g.ip++
-		break
-	case *BraInstruction:
-		code = g.genBraInstruction(node.(*BraInstruction))
-		ok = true
-		g.ip++
-		break
-	default:
-		break
-	}
+func (g *CodeGen) Generate(ins Instruction) []uint32 {
+	codes := ins.Generate(g)
+	g.ip += uint32(len(codes))
 	g.lineNo++
-	return code, ok
+	return codes
 }
 
-func (g *CodeGen) genRegInstruction(ins *RegInstruction) uint32 {
-	code := g.placeDataCmd(ins.cmd)
-	code |= g.placeSetBit(ins.set)
-	code |= g.placeRd(ins.rd)
-	code |= g.placeRa(ins.ra)
-	code |= g.placeRb(ins.rb)
-	code |= g.placeNumShift(ins.sh)
-	return code
-}
+// func (g *CodeGen) Generate(node interface{}) ([]uint32, bool) {
+// 	codes := []uint32{}
+// 	ok := false
+// 	switch node.(type) {
+// 	case *RegInstruction:
+// 		code := g.genRegInstruction(node.(*RegInstruction))
+// 		codes = append(codes, code)
+// 		ok = true
+// 		g.ip++
+// 		break
+// 	case *I12Instruction:
+// 		code = g.genI12Instruction(node.(*I12Instruction))
+// 		ok = true
+// 		g.ip++
+// 		break
+// 	case *I16Instruction:
+// 		code = g.genI16Instruction(node.(*I16Instruction))
+// 		ok = true
+// 		g.ip++
+// 		break
+// 	case *BraInstruction:
+// 		code = g.genBraInstruction(node.(*BraInstruction))
+// 		ok = true
+// 		g.ip++
+// 		break
+// 	default:
+// 		break
+// 	}
+// 	g.lineNo++
+// 	return codes, ok
+// }
 
-func (g *CodeGen) genI12Instruction(ins *I12Instruction) uint32 {
-	code := g.placeDataCmd(ins.cmd)
-	code |= g.placeSetBit(ins.set)
-	code |= g.placeImmBit()
-	code |= g.placeRd(ins.rd)
-	code |= g.placeRa(ins.ra)
-	// hängt von der operation ab ob signed oder unsigned
-	code |= g.convertSignedNum(ins.num, 4, 12)
-	return code
-}
+// func (g *CodeGen) genRegInstruction(ins *RegInstruction) uint32 {
+// 	code := g.placeDataCmd(ins.cmd)
+// 	code |= g.placeSetBit(ins.set)
+// 	code |= g.placeRd(ins.rd)
+// 	code |= g.placeRa(ins.ra)
+// 	code |= g.placeRb(ins.rb)
+// 	code |= g.placeNumShift(ins.sh)
+// 	return code
+// }
 
-func (g *CodeGen) genI16Instruction(ins *I16Instruction) uint32 {
-	code := g.placeDataCmd(ins.cmd)
-	code |= g.placeSetBit(ins.set)
-	code |= g.placeRd(ins.rd)
-	// hängt von der operation ab ob signed oder unsigned
-	code |= g.convertSignedNum(ins.num, 4, 16)
-	return code
-}
+// func (g *CodeGen) genI12Instruction(ins *I12Instruction) uint32 {
+// 	code := g.placeDataCmd(ins.cmd)
+// 	code |= g.placeSetBit(ins.set)
+// 	code |= g.placeImmBit()
+// 	code |= g.placeRd(ins.rd)
+// 	code |= g.placeRa(ins.ra)
+// 	// hängt von der operation ab ob signed oder unsigned
+// 	code |= g.convertSignedNum(ins.num, 4, 12)
+// 	return code
+// }
 
-func (g *CodeGen) genBraInstruction(ins *BraInstruction) uint32 {
-	code := g.placeDataCmd(ins.cmd)
-	code |= g.placeBranchAddress(ins.lbl)
-	return code
-}
+// func (g *CodeGen) genI16Instruction(ins *I16Instruction) uint32 {
+// 	code := g.placeDataCmd(ins.cmd)
+// 	code |= g.placeSetBit(ins.set)
+// 	code |= g.placeRd(ins.rd)
+// 	// hängt von der operation ab ob signed oder unsigned
+// 	code |= g.convertSignedNum(ins.num, 4, 16)
+// 	return code
+// }
+
+// func (g *CodeGen) genBraInstruction(ins *BraInstruction) uint32 {
+// 	code := g.placeDataCmd(ins.cmd)
+// 	code |= g.placeBranchAddress(ins.lbl)
+// 	return code
+// }
 
 func (g *CodeGen) placeDataCmd(cmd string) uint32 {
 	code, ok := dataInstructions[cmd]
@@ -186,7 +196,11 @@ func (g *CodeGen) placeSetBit(set bool) uint32 {
 	return 0
 }
 
-func (g *CodeGen) placeImmBit() uint32 {
+func (g *CodeGen) placeI16Bit() uint32 {
+	return g.place(1, 29, 3)
+}
+
+func (g *CodeGen) placeI12Bit() uint32 {
 	return g.place(1, 24, 1)
 }
 

@@ -19,8 +19,8 @@ func scanSymbols(inFileName string) SymbolTable {
 	scanner := bufio.NewScanner(file)
 	lineNo := uint32(1)
 	ip := uint32(0)
-
 	t := NewSymbolTable()
+
 	for scanner.Scan() {
 
 		if err := scanner.Err(); err != nil {
@@ -45,17 +45,9 @@ func scanSymbols(inFileName string) SymbolTable {
 			ip++
 			break
 		}
-
 		lineNo++
 	}
 	return t
-}
-
-func WriteInt32BigEndian(w *bufio.Writer, i uint32) {
-	w.WriteByte(byte(i >> 24))
-	w.WriteByte(byte(i >> 16))
-	w.WriteByte(byte(i >> 8))
-	w.WriteByte(byte(i))
 }
 
 func compile(inFileName string, st SymbolTable, outFileName string, lstFileName string) {
@@ -72,7 +64,7 @@ func compile(inFileName string, st SymbolTable, outFileName string, lstFileName 
 		log.Fatal(err)
 	}
 	defer outFile.Close()
-	outWriter := bufio.NewWriter(outFile)
+	binWriter := bufio.NewWriter(outFile)
 
 	lstFile, err := os.Create(lstFileName)
 	if err != nil {
@@ -80,8 +72,6 @@ func compile(inFileName string, st SymbolTable, outFileName string, lstFileName 
 	}
 	defer lstFile.Close()
 	lstWriter := bufio.NewWriter(lstFile)
-
-	ip := uint32(0)
 
 	scanner := bufio.NewScanner(inFile)
 	for scanner.Scan() {
@@ -106,25 +96,28 @@ func compile(inFileName string, st SymbolTable, outFileName string, lstFileName 
 		switch node.(type) {
 		case *Comment:
 			fmt.Fprintf(lstWriter, "%24s%s\n", "", scanner.Text())
-			//fmt.Printf("%24s%s\n", "", scanner.Text())
 			break
 		case *Label:
 			label := node.(*Label)
 			fmt.Fprintf(lstWriter, "%24s%s\n", "", label.name)
-			//fmt.Printf("%24s%s\n", "", label.name)
 			break
-		case *RegInstruction, *I12Instruction, *I16Instruction, *BraInstruction:
-			code, ok := gen.Generate(node)
-			if ok {
-				fmt.Fprintf(lstWriter, "0x%08x  0x%08x  %s\n", ip, code, scanner.Text())
-				WriteInt32BigEndian(outWriter, code)
-				//fmt.Printf("0x%08x  0x%08x  %s\n", ip, code, scanner.Text())
+		case Instruction:
+			ip := gen.ip
+			codes := gen.Generate(node.(Instruction))
+			//if ok {
+			for i, code := range codes {
+				text := " +"
+				if i == 0 {
+					text = scanner.Text()
+				}
+				fmt.Fprintf(lstWriter, "0x%08x  0x%08x  %s\n", ip+uint32(i), code, text)
+				WriteInt32BigEndian(binWriter, code)
 			}
-			ip++
+			//}
 			break
 		}
 		lstWriter.Flush()
-		outWriter.Flush()
+		binWriter.Flush()
 	}
 }
 
@@ -134,17 +127,17 @@ func main() {
 
 	flag.Parse()
 
-	args := flag.Args()
+	//args := flag.Args()
 
-	if len(args) < 1 {
-		panic("Too few arguments. Provide a single input file.")
-	}
+	// if len(args) < 1 {
+	// 	panic("Too few arguments. Provide a single input file.")
+	// }
+	//
+	// if len(args) > 1 {
+	// 	panic("Too many arguments. Provide only a single input file.")
+	// }
 
-	if len(args) != 1 {
-		panic("Too many arguments. Provide only a single input file.")
-	}
-
-	inFileName := args[0]
+	inFileName := "examples/test.esm" //args[0]
 
 	st := scanSymbols(inFileName)
 	compile(inFileName, st, *outFileNamePtr, *lstFileNamePtr)
