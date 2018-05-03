@@ -181,12 +181,28 @@ func (g *CodeGen) placeDataCmd(cmd string) uint32 {
 	return code
 }
 
+func (g *CodeGen) placeMemCmd(cmd string) uint32 {
+	code, ok := memInstructions[cmd]
+	if !ok {
+		g.Error("Unrecognized instruction [%s].", cmd)
+	}
+	return code
+}
+
 func (g *CodeGen) placeBranchCmd(cmd string) uint32 {
 	code, ok := branchInstructions[cmd]
 	if !ok {
 		g.Error("Unrecognized instruction [%s].", cmd)
 	}
 	return code
+}
+
+func (g *CodeGen) placeCnd(cnd string) uint32 {
+	code, ok := conditions[cnd]
+	if !ok {
+		g.Error("Unrecognized condition flag [%s].", cnd)
+	}
+	return g.place(int64(code), 26, 3)
 }
 
 func (g *CodeGen) placeSetBit(set bool) uint32 {

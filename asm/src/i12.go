@@ -27,6 +27,7 @@ func NewI12Instr(
 
 func (ins *I12Instruction) Generate(g *CodeGen) []uint32 {
 	code := g.placeDataCmd(ins.cmd)
+	code |= g.placeCnd(ins.cnd)
 	code |= g.placeSetBit(ins.set)
 	code |= g.placeI12Bit()
 	code |= g.placeRd(ins.rd)

@@ -1,44 +1,36 @@
 package main
 
-type RegInstruction struct {
+type MemRegInstruction struct {
 	set bool
 	cmd string
 	cnd string
 	rd  string
 	ra  string
 	rb  string
-	sh  *NumShift
 }
 
-func NewRegInstr(
+func NewMemRegInstr(
 	set interface{},
 	cmd interface{},
 	cnd interface{},
 	rd interface{},
 	ra interface{},
-	rb interface{},
-	sh interface{}) (*RegInstruction, error) {
-	ins := &RegInstruction{
+	rb interface{}) (*MemRegInstruction, error) {
+	return &MemRegInstruction{
 		set != nil,
 		asString(cmd, ""),
 		asString(cnd, "al"),
 		asString(rd, ""),
 		asString(ra, ""),
-		asString(rb, ""),
-		nil}
-	if sh != nil {
-		ins.sh = sh.(*NumShift)
-	}
-	return ins, nil
+		asString(rb, "")}, nil
 }
 
-func (ins *RegInstruction) Generate(g *CodeGen) []uint32 {
-	code := g.placeDataCmd(ins.cmd)
+func (ins *MemRegInstruction) Generate(g *CodeGen) []uint32 {
+	code := g.placeMemCmd(ins.cmd)
 	code |= g.placeCnd(ins.cnd)
 	code |= g.placeSetBit(ins.set)
 	code |= g.placeRd(ins.rd)
 	code |= g.placeRa(ins.ra)
 	code |= g.placeRb(ins.rb)
-	code |= g.placeNumShift(ins.sh)
 	return []uint32{code}
 }

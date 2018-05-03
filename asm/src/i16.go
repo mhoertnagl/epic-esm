@@ -27,6 +27,7 @@ func NewI16Instr(
 
 func (ins *I16Instruction) Generate(g *CodeGen) []uint32 {
 	code := g.placeDataCmd(ins.cmd)
+	code |= g.placeCnd(ins.cnd)
 	code |= g.placeI16Bit()
 	code |= g.placeSetBit(ins.set)
 	code |= g.placeRd(ins.rd)

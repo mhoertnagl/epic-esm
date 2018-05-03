@@ -1,44 +1,36 @@
 package main
 
-type RegInstruction struct {
+type MemI12Instruction struct {
 	set bool
 	cmd string
 	cnd string
 	rd  string
 	ra  string
-	rb  string
-	sh  *NumShift
+	num string
 }
 
-func NewRegInstr(
+func NewMemI12Instr(
 	set interface{},
 	cmd interface{},
 	cnd interface{},
 	rd interface{},
 	ra interface{},
-	rb interface{},
-	sh interface{}) (*RegInstruction, error) {
-	ins := &RegInstruction{
+	num interface{}) (*MemI12Instruction, error) {
+	return &MemI12Instruction{
 		set != nil,
 		asString(cmd, ""),
 		asString(cnd, "al"),
 		asString(rd, ""),
 		asString(ra, ""),
-		asString(rb, ""),
-		nil}
-	if sh != nil {
-		ins.sh = sh.(*NumShift)
-	}
-	return ins, nil
+		asString(num, "")}, nil
 }
 
-func (ins *RegInstruction) Generate(g *CodeGen) []uint32 {
-	code := g.placeDataCmd(ins.cmd)
+func (ins *MemI12Instruction) Generate(g *CodeGen) []uint32 {
+	code := g.placeMemCmd(ins.cmd)
 	code |= g.placeCnd(ins.cnd)
 	code |= g.placeSetBit(ins.set)
 	code |= g.placeRd(ins.rd)
 	code |= g.placeRa(ins.ra)
-	code |= g.placeRb(ins.rb)
-	code |= g.placeNumShift(ins.sh)
+	code |= g.convertSignedNum(ins.num, 4, 12)
 	return []uint32{code}
 }

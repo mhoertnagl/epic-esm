@@ -18,6 +18,7 @@ func NewBraInstr(
 
 func (ins *BraInstruction) Generate(g *CodeGen) []uint32 {
 	code := g.placeBranchCmd(ins.cmd)
+	code |= g.placeCnd(ins.cnd)
 	code |= g.placeBranchAddress(ins.lbl)
 	return []uint32{code}
 }

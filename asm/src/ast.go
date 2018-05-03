@@ -51,23 +51,23 @@ type NumShift struct {
 // 	num string
 // }
 
-type MemRegInstruction struct {
-	set bool
-	cmd string
-	cnd string
-	rd  string
-	ra  string
-	rb  string
-}
+// type MemRegInstruction struct {
+// 	set bool
+// 	cmd string
+// 	cnd string
+// 	rd  string
+// 	ra  string
+// 	rb  string
+// }
 
-type MemI12Instruction struct {
-	set bool
-	cmd string
-	cnd string
-	rd  string
-	ra  string
-	num string
-}
+// type MemI12Instruction struct {
+// 	set bool
+// 	cmd string
+// 	cnd string
+// 	rd  string
+// 	ra  string
+// 	num string
+// }
 
 // type BraInstruction struct {
 // 	cmd string
@@ -165,37 +165,37 @@ func NewShiftInstr(
 // 		asString(num, "")}, nil
 // }
 
-func NewMemRegInstr(
-	set interface{},
-	cmd interface{},
-	cnd interface{},
-	rd interface{},
-	ra interface{},
-	rb interface{}) (*MemRegInstruction, error) {
-	return &MemRegInstruction{
-		set != nil,
-		asString(cmd, ""),
-		asString(cnd, "al"),
-		asString(rd, ""),
-		asString(ra, ""),
-		asString(rb, "")}, nil
-}
+// func NewMemRegInstr(
+// 	set interface{},
+// 	cmd interface{},
+// 	cnd interface{},
+// 	rd interface{},
+// 	ra interface{},
+// 	rb interface{}) (*MemRegInstruction, error) {
+// 	return &MemRegInstruction{
+// 		set != nil,
+// 		asString(cmd, ""),
+// 		asString(cnd, "al"),
+// 		asString(rd, ""),
+// 		asString(ra, ""),
+// 		asString(rb, "")}, nil
+// }
 
-func NewMemI12Instr(
-	set interface{},
-	cmd interface{},
-	cnd interface{},
-	rd interface{},
-	ra interface{},
-	num interface{}) (*MemI12Instruction, error) {
-	return &MemI12Instruction{
-		set != nil,
-		asString(cmd, ""),
-		asString(cnd, "al"),
-		asString(rd, ""),
-		asString(ra, ""),
-		asString(num, "")}, nil
-}
+// func NewMemI12Instr(
+// 	set interface{},
+// 	cmd interface{},
+// 	cnd interface{},
+// 	rd interface{},
+// 	ra interface{},
+// 	num interface{}) (*MemI12Instruction, error) {
+// 	return &MemI12Instruction{
+// 		set != nil,
+// 		asString(cmd, ""),
+// 		asString(cnd, "al"),
+// 		asString(rd, ""),
+// 		asString(ra, ""),
+// 		asString(num, "")}, nil
+// }
 
 // func NewBraInstr(
 // 	cmd interface{},
