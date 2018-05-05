@@ -16,21 +16,18 @@ func (g *CodeGen) convertUnsignedNum(n string, s uint8, p uint8) uint32 {
 }
 
 func (g *CodeGen) convertNum(n string, s uint8, p uint8, min int64, max int64) uint32 {
-	i, err := parseNum(n)
+	i, err := g.parseNum(n)
 
 	if err != nil {
 		g.Error("Number [%s] too long.", n)
-		return 0
 	}
 	if i < min {
 		g.Error("Unexpected number [%s]. Number must be greater than [%d].", n, min)
-		return 0
 	}
 	if i >= max {
 		g.Error("Unexpected number [%s]. Number must be less than [%d]", n, max)
-		return 0
 	}
-	return place(i, s, p)
+	return g.place(i, s, p)
 }
 
 func (g *CodeGen) convertAddr(addr uint32) uint32 {
@@ -38,10 +35,10 @@ func (g *CodeGen) convertAddr(addr uint32) uint32 {
 	if bra < BRA_MIN || bra >= BRA_MAX {
 		g.Error("Branch distance [%d] too large.", bra)
 	}
-	return place(bra, 0, 25)
+	return g.place(bra, 0, 25)
 }
 
-func parseNum(n string) (int64, error) {
+func (g *CodeGen) parseNum(n string) (int64, error) {
 	if len(n) > 2 && n[0:2] == "0b" {
 		return strconv.ParseInt(n[2:], 2, 32)
 	}
@@ -51,6 +48,6 @@ func parseNum(n string) (int64, error) {
 	return strconv.ParseInt(n, 10, 32)
 }
 
-func place(i int64, s uint8, p uint8) uint32 {
+func (g *CodeGen) place(i int64, s uint8, p uint8) uint32 {
 	return uint32((i & ((1 << p) - 1)) << s)
 }

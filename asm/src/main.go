@@ -9,8 +9,8 @@ import (
 	"strings"
 )
 
-func scanSymbols(filename string) SymbolTable {
-	file, err := os.Open(filename)
+func scanSymbols(inFileName string) SymbolTable {
+	file, err := os.Open(inFileName)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -19,15 +19,15 @@ func scanSymbols(filename string) SymbolTable {
 	scanner := bufio.NewScanner(file)
 	lineNo := uint32(1)
 	ip := uint32(0)
-
 	t := NewSymbolTable()
+
 	for scanner.Scan() {
 
 		if err := scanner.Err(); err != nil {
 			log.Fatal(err)
 		}
 
-		root, err := Parse(filename, scanner.Bytes())
+		root, err := Parse(inFileName, scanner.Bytes())
 		if err != nil {
 			fmt.Println(err)
 			continue
@@ -45,41 +45,48 @@ func scanSymbols(filename string) SymbolTable {
 			ip++
 			break
 		}
-
 		lineNo++
 	}
 	return t
 }
 
-func compile(filename string, st SymbolTable) {
-	gen := NewCodeGen(filename, st)
+func compile(inFileName string, st SymbolTable, outFileName string, lstFileName string) {
+	gen := NewCodeGen(inFileName, st)
 
-	file, err := os.Open(filename)
+	inFile, err := os.Open(inFileName)
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer file.Close()
+	defer inFile.Close()
 
-	ip := uint32(0)
+	outFile, err := os.Create(outFileName)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer outFile.Close()
+	binWriter := bufio.NewWriter(outFile)
 
-	scanner := bufio.NewScanner(file)
+	lstFile, err := os.Create(lstFileName)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer lstFile.Close()
+	lstWriter := bufio.NewWriter(lstFile)
+
+	scanner := bufio.NewScanner(inFile)
 	for scanner.Scan() {
 
 		if err := scanner.Err(); err != nil {
 			log.Fatal(err)
 		}
 
-		// fmt.Println("==============================")
-		// fmt.Println(scanner.Text())
-		// fmt.Println("------------------------------")
-
 		if strings.TrimSpace(scanner.Text()) == "" {
-			//fmt.Println("Empty line.")
+			fmt.Fprintln(lstWriter)
 			fmt.Println()
 			continue
 		}
 
-		root, err := Parse(filename, scanner.Bytes())
+		root, err := Parse(inFileName, scanner.Bytes())
 		if err != nil {
 			fmt.Println(err)
 			continue
@@ -88,43 +95,53 @@ func compile(filename string, st SymbolTable) {
 		node := root.([]interface{})[1]
 		switch node.(type) {
 		case *Comment:
-			fmt.Printf("%24s%s\n", "", scanner.Text())
+			fmt.Fprintf(lstWriter, "%24s%s\n", "", scanner.Text())
 			break
 		case *Label:
 			label := node.(*Label)
-			fmt.Printf("%24s%s\n", "", label.name)
+			fmt.Fprintf(lstWriter, "%24s%s\n", "", label.name)
 			break
-		case *RegInstruction, *I12Instruction, *I16Instruction, *BraInstruction:
-			code, ok := gen.Generate(node)
-			if ok {
-				fmt.Printf("0x%08x  0x%08x  %s\n", ip, code, scanner.Text())
+		case Instruction:
+			ip := gen.ip
+			codes := gen.Generate(node.(Instruction))
+			//if ok {
+			for i, code := range codes {
+				text := " +"
+				if i == 0 {
+					text = scanner.Text()
+				}
+				fmt.Fprintf(lstWriter, "0x%08x  0x%08x  %s\n", ip+uint32(i), code, text)
+				WriteInt32BigEndian(binWriter, code)
 			}
-			ip++
+			//}
 			break
 		}
+		lstWriter.Flush()
+		binWriter.Flush()
 	}
 }
 
 func main() {
-	//outFilePtr := flag.String("o", "x.bin", "an output file")
+	outFileNamePtr := flag.String("o", "x.bin", "an output file")
+	lstFileNamePtr := flag.String("l", "x.lst", "a listing file")
 
 	flag.Parse()
 
-	args := flag.Args()
+	//args := flag.Args()
 
-	if len(args) < 1 {
-		panic("Too few arguments. Provide a single input file.")
-	}
+	// if len(args) < 1 {
+	// 	panic("Too few arguments. Provide a single input file.")
+	// }
+	//
+	// if len(args) > 1 {
+	// 	panic("Too many arguments. Provide only a single input file.")
+	// }
 
-	if len(args) != 1 {
-		panic("Too many arguments. Provide only a single input file.")
-	}
+	inFileName := "examples/test.esm" //args[0]
 
-	inFile := args[0]
+	st := scanSymbols(inFileName)
+	compile(inFileName, st, *outFileNamePtr, *lstFileNamePtr)
 
-	st := scanSymbols(inFile)
-	compile(inFile, st)
-
-	fmt.Println("Symbol Table:")
-	fmt.Println(st)
+	// fmt.Println("Symbol Table:")
+	// fmt.Println(st)
 }

@@ -2,8 +2,13 @@
 // 
 // -----------------------------------------------------------------------------
 
-nop       <-> sllnv r0 r0  0  // Nothingness.
-mov rd ra <-> sll   rd ra  0  // rd <- ra
+nop       <-> movnv r0 r0  0  // Nothingness.
+sll rd ra u5 <-> mov rd ra  << u5  // rd <- ra
+srl rd ra u5 <-> mov rd ra  >> u5
+sra rd ra u5 <-> mov rd ra >>> u5
+xxx rd ra rb <>> u5 <-> xxx rd ra rb <<> (32 - u5)
+rol rd ra u5 <-> mov rd ra <<> #n
+ror rd ra u5 <-> mov rd ra <<> (32 - u5)
 clr rd    <-> xor   rd rd     // rd <- rd ^ rd (<-> rd = 0)
 inv rd    <-> nor   rd rd     // rd <- ~rd
 neg rd ra <-> mul   rd ra -1  // rd <- -ra
@@ -12,10 +17,7 @@ neg rd    <-> neg   rd rd
 //               add   rd 1
 swp ra rb <-> xor   ra rb     // ra <- ra ^ rb
               xor   rb ra     // rb <- rb ^ (ra ^ rb) <-> ra
-              xor   ra rb     // ra <- (ra ^ rb) ^ ra <-> rb
-
-ror rd ra u5 <-> rol rd ra (32 - u5)
-ror rd u5    <-> ror rd rd u5          
+              xor   ra rb     // ra <- (ra ^ rb) ^ ra <-> rb        
               
 psh rxs <->
   for ((rx, i) in rxs) {
@@ -33,8 +35,8 @@ pop rxs <->
 // disabled.
 // Funzt nicht so gut wenn man mehrere mit und verknüpfte Bedingungen prüfen
 // will. Wie löst das ARM?
-cmp ra rb  <-> ! subnv ra rb
-cmp ra s16 <-> ! subnv ra s16
+//cmp ra rb  <-> ! subnv r0 ra rb
+//cmp ra s16 <-> ! subnv r0 ra s16
 
 // Loading 32 bit constants.
 ldc rd s32 <-> 
@@ -49,7 +51,7 @@ ldc rd s32 <->
 lda rd @lbl <-> ldc rd sym[@lbl].addr
 
 // Sign of a number.
-sgn rd ra <-> sra rd ra 31
+//sgn rd ra <-> sra rd ra 31
 
 // Read and Write CPU registers.
 

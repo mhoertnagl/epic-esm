@@ -21,3 +21,6 @@ golang.org
 
 debug
 esm
+
+*.bin
+*.lst

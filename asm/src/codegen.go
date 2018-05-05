@@ -1,6 +1,8 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+)
 
 var dataInstructions = map[string]uint32{
 	"add": 0x00000000,
@@ -13,37 +15,15 @@ var dataInstructions = map[string]uint32{
 	"xor": 0x00000006,
 	"nor": 0x00000007,
 
-	//"tst": 0x00000008,
-	"cmp": 0x00000009,
-	//"add": 0x0000000a,
-	//"add": 0x0000000b,
+	"adu": 0x00000008,
+	"sbu": 0x00000009,
+	//"mlu": 0x0000000a, multiplikation ist immer signed
+	//"dvu": 0x0000000b, division ist immer signed
 
-	"sll": 0x0000000c,
-	"rol": 0x0000000d,
-	"srl": 0x0000000e,
-	"sra": 0x0000000f,
-}
-
-var immInstructions = map[string]uint32{
-	"add": 0x20000000,
-	"sub": 0x20000001,
-	"mul": 0x20000002,
-	"div": 0x20000003,
-
-	"and": 0x20000004,
-	"oor": 0x20000005,
-	"xor": 0x20000006,
-	"nor": 0x20000007,
-
-	//"tst": 0x20000008,
-	"cmp": 0x20000009,
-	//"add": 0x2000000a,
-	//"add": 0x2000000b,
-
-	"ldc": 0x2000000c,
-	//"rol": 0x2000000d,
-	//"srl": 0x2000000e,
-	//"sra": 0x2000000f,
+	"cmp": 0x0000000c,
+	"cpu": 0x0000000d,
+	"tst": 0x0000000e,
+	"mov": 0x0000000f,
 }
 
 var memInstructions = map[string]uint32{
@@ -54,6 +34,19 @@ var memInstructions = map[string]uint32{
 var branchInstructions = map[string]uint32{
 	"bra": 0xe0000000,
 	"brl": 0xe2000000,
+}
+
+var shiftOps = map[string]uint32{
+	"<<":  0,
+	">>":  1,
+	">>>": 2,
+	"<<>": 3,
+	"<>>": 3,
+	"sll": 0,
+	"srl": 1,
+	"sra": 2,
+	"rol": 3,
+	"ror": 3,
 }
 
 var registers = map[string]uint32{
@@ -105,76 +98,80 @@ func (g *CodeGen) Error(format string, a ...interface{}) {
 	fmt.Printf("%s [%d] ERROR: %s\n", g.filename, g.lineNo, msg)
 }
 
-func (g *CodeGen) Generate(node interface{}) (uint32, bool) {
-	code := uint32(0)
-	ok := false
-	switch node.(type) {
-	case *RegInstruction:
-		code = g.genRegInstruction(node.(*RegInstruction))
-		ok = true
-		g.ip++
-		break
-	case *I12Instruction:
-		code = g.genI12Instruction(node.(*I12Instruction))
-		ok = true
-		g.ip++
-		break
-	case *I16Instruction:
-		code = g.genI16Instruction(node.(*I16Instruction))
-		ok = true
-		g.ip++
-		break
-	case *BraInstruction:
-		code = g.genBraInstruction(node.(*BraInstruction))
-		ok = true
-		g.ip++
-		break
-	default:
-		break
-	}
+func (g *CodeGen) Generate(ins Instruction) []uint32 {
+	codes := ins.Generate(g)
+	g.ip += uint32(len(codes))
 	g.lineNo++
-	return code, ok
+	return codes
 }
 
-func (g *CodeGen) genRegInstruction(ins *RegInstruction) uint32 {
-	code := g.placeDataCmd(ins.cmd)
-	code |= g.placeSetBit(ins.set)
-	code |= g.placeRd(ins.rd)
-	code |= g.placeRa(ins.ra)
-	code |= g.placeRb(ins.rb)
-	return code
-}
+// func (g *CodeGen) Generate(node interface{}) ([]uint32, bool) {
+// 	codes := []uint32{}
+// 	ok := false
+// 	switch node.(type) {
+// 	case *RegInstruction:
+// 		code := g.genRegInstruction(node.(*RegInstruction))
+// 		codes = append(codes, code)
+// 		ok = true
+// 		g.ip++
+// 		break
+// 	case *I12Instruction:
+// 		code = g.genI12Instruction(node.(*I12Instruction))
+// 		ok = true
+// 		g.ip++
+// 		break
+// 	case *I16Instruction:
+// 		code = g.genI16Instruction(node.(*I16Instruction))
+// 		ok = true
+// 		g.ip++
+// 		break
+// 	case *BraInstruction:
+// 		code = g.genBraInstruction(node.(*BraInstruction))
+// 		ok = true
+// 		g.ip++
+// 		break
+// 	default:
+// 		break
+// 	}
+// 	g.lineNo++
+// 	return codes, ok
+// }
 
-func (g *CodeGen) genI12Instruction(ins *I12Instruction) uint32 {
-	code := g.placeDataCmd(ins.cmd)
-	code |= g.placeSetBit(ins.set)
-	code |= g.placeImmBit()
-	code |= g.placeRd(ins.rd)
-	code |= g.placeRa(ins.ra)
-	code |= g.convertSignedNum(ins.num, 4, 12)
-	return code
-}
+// func (g *CodeGen) genRegInstruction(ins *RegInstruction) uint32 {
+// 	code := g.placeDataCmd(ins.cmd)
+// 	code |= g.placeSetBit(ins.set)
+// 	code |= g.placeRd(ins.rd)
+// 	code |= g.placeRa(ins.ra)
+// 	code |= g.placeRb(ins.rb)
+// 	code |= g.placeNumShift(ins.sh)
+// 	return code
+// }
 
-func (g *CodeGen) genI16Instruction(ins *I16Instruction) uint32 {
-	code := g.placeImmCmd(ins.cmd)
-	code |= g.placeSetBit(ins.set)
-	code |= g.placeRd(ins.rd)
-	code |= g.convertSignedNum(ins.num, 4, 16)
-	return code
-}
+// func (g *CodeGen) genI12Instruction(ins *I12Instruction) uint32 {
+// 	code := g.placeDataCmd(ins.cmd)
+// 	code |= g.placeSetBit(ins.set)
+// 	code |= g.placeImmBit()
+// 	code |= g.placeRd(ins.rd)
+// 	code |= g.placeRa(ins.ra)
+// 	// hängt von der operation ab ob signed oder unsigned
+// 	code |= g.convertSignedNum(ins.num, 4, 12)
+// 	return code
+// }
 
-func (g *CodeGen) genBraInstruction(ins *BraInstruction) uint32 {
-	code, ok := branchInstructions[ins.cmd]
-	if !ok {
-		g.Error("Unrecognized instruction [%s].", ins.cmd)
-	}
-	sym, ok := g.st.Find(ins.lbl.name)
-	if !ok {
-		g.Error("Reference to undefined symbol [%s].", ins.lbl.name)
-	}
-	code |= g.convertAddr(sym.addr)
-	return code
-}
+// func (g *CodeGen) genI16Instruction(ins *I16Instruction) uint32 {
+// 	code := g.placeDataCmd(ins.cmd)
+// 	code |= g.placeSetBit(ins.set)
+// 	code |= g.placeRd(ins.rd)
+// 	// hängt von der operation ab ob signed oder unsigned
+// 	code |= g.convertSignedNum(ins.num, 4, 16)
+// 	return code
+// }
+
+// func (g *CodeGen) genBraInstruction(ins *BraInstruction) uint32 {
+// 	code := g.placeDataCmd(ins.cmd)
+// 	code |= g.placeBranchAddress(ins.lbl)
+// 	return code
+// }
 
 func (g *CodeGen) placeDataCmd(cmd string) uint32 {
 	code, ok := dataInstructions[cmd]
@@ -184,23 +181,43 @@ func (g *CodeGen) placeDataCmd(cmd string) uint32 {
 	return code
 }
 
-func (g *CodeGen) placeImmCmd(cmd string) uint32 {
-	code, ok := immInstructions[cmd]
+func (g *CodeGen) placeMemCmd(cmd string) uint32 {
+	code, ok := memInstructions[cmd]
 	if !ok {
 		g.Error("Unrecognized instruction [%s].", cmd)
 	}
 	return code
 }
 
+func (g *CodeGen) placeBranchCmd(cmd string) uint32 {
+	code, ok := branchInstructions[cmd]
+	if !ok {
+		g.Error("Unrecognized instruction [%s].", cmd)
+	}
+	return code
+}
+
+func (g *CodeGen) placeCnd(cnd string) uint32 {
+	code, ok := conditions[cnd]
+	if !ok {
+		g.Error("Unrecognized condition flag [%s].", cnd)
+	}
+	return g.place(int64(code), 26, 3)
+}
+
 func (g *CodeGen) placeSetBit(set bool) uint32 {
 	if set {
-		return place(1, 25, 1)
+		return g.place(1, 25, 1)
 	}
 	return 0
 }
 
-func (g *CodeGen) placeImmBit() uint32 {
-	return place(1, 24, 1)
+func (g *CodeGen) placeI16Bit() uint32 {
+	return g.place(1, 29, 3)
+}
+
+func (g *CodeGen) placeI12Bit() uint32 {
+	return g.place(1, 24, 1)
 }
 
 func (g *CodeGen) placeRd(rdName string) uint32 {
@@ -208,7 +225,7 @@ func (g *CodeGen) placeRd(rdName string) uint32 {
 	if !ok {
 		g.Error("unrecognized destination register [%s]", rdName)
 	}
-	return place(int64(rd), 20, 4)
+	return g.place(int64(rd), 20, 4)
 }
 
 func (g *CodeGen) placeRa(raName string) uint32 {
@@ -216,7 +233,7 @@ func (g *CodeGen) placeRa(raName string) uint32 {
 	if !ok {
 		g.Error("unrecognized source A register [%s]", raName)
 	}
-	return place(int64(ra), 16, 4)
+	return g.place(int64(ra), 16, 4)
 }
 
 func (g *CodeGen) placeRb(rbName string) uint32 {
@@ -224,5 +241,37 @@ func (g *CodeGen) placeRb(rbName string) uint32 {
 	if !ok {
 		g.Error("unrecognized source B register [%s]", rbName)
 	}
-	return place(int64(rb), 12, 4)
+	return g.place(int64(rb), 12, 4)
+}
+
+func (g *CodeGen) placeNumShift(sh *NumShift) uint32 {
+	if sh == nil {
+		return 0
+	}
+	code := g.placeShiftOp(sh.cmd)
+	// Turns a Rotate Right (<>>) into a Rotate Left (<<>). The following
+	// identity holds for all cases: x <>> n <--> x <<> (32 - n)
+	if sh.cmd == "<>>" || sh.cmd == "ror" {
+		shft := g.convertUnsignedNum(sh.num, 0, 5)
+		code |= g.place(int64(32-shft), 4, 5)
+	} else {
+		code |= g.convertUnsignedNum(sh.num, 4, 5)
+	}
+	return code
+}
+
+func (g *CodeGen) placeShiftOp(cmd string) uint32 {
+	sop, ok := shiftOps[cmd]
+	if !ok {
+		g.Error("unrecognized shift operator [%s]", cmd)
+	}
+	return g.place(int64(sop), 2, 9)
+}
+
+func (g *CodeGen) placeBranchAddress(lbl *Label) uint32 {
+	sym, ok := g.st.Find(lbl.name)
+	if !ok {
+		g.Error("Reference to undefined symbol [%s].", lbl.name)
+	}
+	return g.convertAddr(sym.addr)
 }
