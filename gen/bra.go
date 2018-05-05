@@ -1,4 +1,4 @@
-package ast
+package gen
 
 type BraInstruction struct {
 	cmd string
@@ -14,11 +14,4 @@ func NewBraInstr(
 		asString(cmd, ""),
 		asString(cnd, "al"),
 		lbl.(*Label)}, nil
-}
-
-func (ins *BraInstruction) Generate(g *CodeGen) []uint32 {
-	code := g.placeBranchCmd(ins.cmd)
-	code |= g.placeCnd(ins.cnd)
-	code |= g.placeBranchAddress(ins.lbl)
-	return []uint32{code}
 }

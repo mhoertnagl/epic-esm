@@ -1,5 +1,7 @@
 {
   package main
+
+  import "github.com/mhoertnagl/epic-esm/gen"
 }
 
 Start
@@ -10,40 +12,40 @@ Start
    ) !.
 
 Instr   "instruction"
-  <-          "nop"  cd:Cnd?                                                    { return NewNopInstr(cd)                             }
+  <-          "nop"  cd:Cnd?                                                    { return gen.NewNopInstr(cd)                             }
 
-   / s:'!'? _ "clr"  cd:Cnd? _ rd:Reg                                           { return NewClrInstr(s, cd, rd)                      }
+   / s:'!'? _ "clr"  cd:Cnd? _ rd:Reg                                           { return gen.NewClrInstr(s, cd, rd)                      }
 
 //   / s:'!'? _ "inv"  cd:Cnd? _ rd:Reg                                           { return NewInvInstr(s, cd, rd)                }
 
-   / s:'!'? _ "mov"  cd:Cnd? _ rd:Reg _ rb:Reg sh:Shift?                        { return NewRegInstr(s, "mov", cd, rd, "r0", rb, sh) }
-   / s:'!'? _ "ldc"  cd:Cnd? _ rd:Reg _ nm:Num                                  { return NewLdcInstr(s, cd, rd, nm)                  }
-   / s:'!'? _ "lda"  cd:Cnd? _ rd:Reg _ lb:Label                                { return NewLdaInstr(s, cd, rd, lb)                  }
+   / s:'!'? _ "mov"  cd:Cnd? _ rd:Reg _ rb:Reg sh:Shift?                        { return gen.NewRegInstr(s, "mov", cd, rd, "r0", rb, sh) }
+   / s:'!'? _ "ldc"  cd:Cnd? _ rd:Reg _ nm:Num                                  { return gen.NewLdcInstr(s, cd, rd, nm)                  }
+   / s:'!'? _ "lda"  cd:Cnd? _ rd:Reg _ lb:Label                                { return gen.NewLdaInstr(s, cd, rd, lb)                  }
 
 //   / s:'!'? _ "swp"  cd:Cnd? _ ra:Reg _ rb:Reg                                  { return NewSwpInstr(s, cd, rd, nm)            }
 
 //   /          "ret"  cd:Cnd? _ ra:Reg                                           { return NewRetInstr(cd, ra)                      }
 //   /          "ret"  cd:Cnd?                                                    { return NewRetInstr(cd, "rp")                    }
 
-   / s:'!'? _ op:SOp cd:Cnd? _ rd:Reg _ rb:Reg _ nm:Num                         { return NewShiftInstr(s, op, cd, rd, rb, nm)        }
+   / s:'!'? _ op:SOp cd:Cnd? _ rd:Reg _ rb:Reg _ nm:Num                         { return gen.NewShiftInstr(s, op, cd, rd, rb, nm)        }
 
    // psh
 
    // pop
 
-   / s:'!'? _ op:DOp cd:Cnd? _ rd:Reg _ ra:Reg _ rb:Reg sh:Shift?               { return NewRegInstr(s, op, cd, rd, ra, rb, sh)      }
-   / s:'!'? _ op:DOp cd:Cnd? _ rd:Reg _ ra:Reg _ nm:Num                         { return NewI12Instr(s, op, cd, rd, ra, nm)          }
-   / s:'!'? _ op:DOp cd:Cnd? _ rd:Reg _ nm:Num up:(_ "<<" _ "16")?              { return NewI16Instr(s, op, cd, up, rd, nm)          }
+   / s:'!'? _ op:DOp cd:Cnd? _ rd:Reg _ ra:Reg _ rb:Reg sh:Shift?               { return gen.NewRegInstr(s, op, cd, rd, ra, rb, sh)      }
+   / s:'!'? _ op:DOp cd:Cnd? _ rd:Reg _ ra:Reg _ nm:Num                         { return gen.NewI12Instr(s, op, cd, rd, ra, nm)          }
+   / s:'!'? _ op:DOp cd:Cnd? _ rd:Reg _ nm:Num up:(_ "<<" _ "16")?              { return gen.NewI16Instr(s, op, cd, up, rd, nm)          }
 
-   / s:'!'? _ op:COp cd:Cnd? _ ra:Reg _ rb:Reg sh:Shift?                        { return NewRegInstr(s, op, cd, "r0", ra, rb, sh)    }
-   / s:'!'? _ op:COp cd:Cnd? _ ra:Reg _ nm:Num up:(_ "<<" _ "16")?              { return NewI16Instr(s, op, cd, up, ra, nm)          }
+   / s:'!'? _ op:COp cd:Cnd? _ ra:Reg _ rb:Reg sh:Shift?                        { return gen.NewRegInstr(s, op, cd, "r0", ra, rb, sh)    }
+   / s:'!'? _ op:COp cd:Cnd? _ ra:Reg _ nm:Num up:(_ "<<" _ "16")?              { return gen.NewI16Instr(s, op, cd, up, ra, nm)          }
 
-   / s:'!'? _ op:MOp cd:Cnd? _ rd:Reg _ ra:Reg _ '[' _ rb:Reg _ ']'             { return NewMemRegInstr(s, op, cd, rd, ra, rb)       }
-   / s:'!'? _ op:MOp cd:Cnd? _ rd:Reg _ ra:Reg _ '[' _ nm:Num _ ']'             { return NewMemI12Instr(s, op, cd, rd, ra, nm)       }
+   / s:'!'? _ op:MOp cd:Cnd? _ rd:Reg _ ra:Reg _ '[' _ rb:Reg _ ']'             { return gen.NewMemRegInstr(s, op, cd, rd, ra, rb)       }
+   / s:'!'? _ op:MOp cd:Cnd? _ rd:Reg _ ra:Reg _ '[' _ nm:Num _ ']'             { return gen.NewMemI12Instr(s, op, cd, rd, ra, nm)       }
 
-   /          op:BOp cd:Cnd? _ lb:Label                                         { return NewBraInstr(op, cd, lb)                     }
+   /          op:BOp cd:Cnd? _ lb:Label                                         { return gen.NewBraInstr(op, cd, lb)                     }
 
-Shift   "shift operation"          <- _ op:ZOp _ nm:Num                         { return NewNumShift(op, nm)                         }
+Shift   "shift operation"          <- _ op:ZOp _ nm:Num                         { return gen.NewNumShift(op, nm)                         }
 
 DOp     "data operator"            <- ("add" / "sub" / "mul" / "div" /
                                        "and" / "oor" / "xor" / "nor" /
@@ -64,8 +66,8 @@ BinNum  "binary number"            <- "0b" [01]+                                
 HexNum  "hexadecimal number"       <- "0x" [0-9a-f]+                            { return NewString(c.text)                           }
 DecNum  "decimal number"           <- '-'? [0-9]+                               { return NewString(c.text)                           }
 
-Label   "label"                    <- '@' [a-zA-Z0-9]+                          { return NewLabel(c.text)                            }
+Label   "label"                    <- '@' [a-zA-Z0-9]+                          { return gen.NewLabel(c.text)                            }
 
-Comment                            <- "//" [^\n\r]*                             { return NewComment()                                }
+Comment                            <- "//" [^\n\r]*                             { return gen.NewComment()                                }
 
 _       "whitespace"               <- [ \n\r\t]*

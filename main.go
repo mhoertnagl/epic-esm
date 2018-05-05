@@ -4,12 +4,13 @@ import (
 	"bufio"
 	"flag"
 	"fmt"
+	"github.com/mhoertnagl/epic-esm/gen"
 	"log"
 	"os"
 	"strings"
 )
 
-func scanSymbols(inFileName string) SymbolTable {
+func scanSymbols(inFileName string) gen.SymbolTable {
 	file, err := os.Open(inFileName)
 	if err != nil {
 		log.Fatal(err)
@@ -19,7 +20,7 @@ func scanSymbols(inFileName string) SymbolTable {
 	scanner := bufio.NewScanner(file)
 	lineNo := uint32(1)
 	ip := uint32(0)
-	t := NewSymbolTable()
+	t := gen.NewSymbolTable()
 
 	for scanner.Scan() {
 
@@ -35,13 +36,13 @@ func scanSymbols(inFileName string) SymbolTable {
 
 		node := root.([]interface{})[1]
 		switch node.(type) {
-		case *Comment:
+		case *gen.Comment:
 			break
-		case *Label:
-			label := node.(*Label)
-			t.Add(label.name, ip, lineNo)
+		case *gen.Label:
+			label := node.(*gen.Label)
+			t.Add(label.Name, ip, lineNo)
 			break
-		case Instruction:
+		case gen.Instruction:
 			ip++
 			break
 		}
@@ -50,8 +51,8 @@ func scanSymbols(inFileName string) SymbolTable {
 	return t
 }
 
-func compile(inFileName string, st SymbolTable, outFileName string, lstFileName string) {
-	gen := NewCodeGen(inFileName, st)
+func compile(inFileName string, st gen.SymbolTable, outFileName string, lstFileName string) {
+	g := gen.NewCodeGen(inFileName, st)
 
 	inFile, err := os.Open(inFileName)
 	if err != nil {
@@ -94,16 +95,16 @@ func compile(inFileName string, st SymbolTable, outFileName string, lstFileName 
 
 		node := root.([]interface{})[1]
 		switch node.(type) {
-		case *Comment:
+		case *gen.Comment:
 			fmt.Fprintf(lstWriter, "%24s%s\n", "", scanner.Text())
 			break
-		case *Label:
-			label := node.(*Label)
-			fmt.Fprintf(lstWriter, "%24s%s\n", "", label.name)
+		case *gen.Label:
+			label := node.(*gen.Label)
+			fmt.Fprintf(lstWriter, "%24s%s\n", "", label.Name)
 			break
-		case Instruction:
-			ip := gen.ip
-			codes := gen.Generate(node.(Instruction))
+		case gen.Instruction:
+			ip := g.GetIp()
+			codes := g.Generate(node.(gen.Instruction))
 			//if ok {
 			for i, code := range codes {
 				text := " +"
