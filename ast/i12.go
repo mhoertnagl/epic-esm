@@ -1,36 +1,38 @@
-package main
+package ast
 
-type MemRegInstruction struct {
+type I12Instruction struct {
 	set bool
 	cmd string
 	cnd string
 	rd  string
 	ra  string
-	rb  string
+	num string
 }
 
-func NewMemRegInstr(
+func NewI12Instr(
 	set interface{},
 	cmd interface{},
 	cnd interface{},
 	rd interface{},
 	ra interface{},
-	rb interface{}) (*MemRegInstruction, error) {
-	return &MemRegInstruction{
+	num interface{}) (*I12Instruction, error) {
+	return &I12Instruction{
 		set != nil,
 		asString(cmd, ""),
 		asString(cnd, "al"),
 		asString(rd, ""),
 		asString(ra, ""),
-		asString(rb, "")}, nil
+		asString(num, "")}, nil
 }
 
-func (ins *MemRegInstruction) Generate(g *CodeGen) []uint32 {
-	code := g.placeMemCmd(ins.cmd)
+func (ins *I12Instruction) Generate(g *CodeGen) []uint32 {
+	code := g.placeDataCmd(ins.cmd)
 	code |= g.placeCnd(ins.cnd)
 	code |= g.placeSetBit(ins.set)
+	code |= g.placeI12Bit()
 	code |= g.placeRd(ins.rd)
 	code |= g.placeRa(ins.ra)
-	code |= g.placeRb(ins.rb)
+	// hängt von der operation ab ob signed oder unsigned
+	code |= g.convertSignedNum(ins.num, 4, 12)
 	return []uint32{code}
 }

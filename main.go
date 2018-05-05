@@ -41,7 +41,7 @@ func scanSymbols(inFileName string) SymbolTable {
 			label := node.(*Label)
 			t.Add(label.name, ip, lineNo)
 			break
-		case *RegInstruction, *I12Instruction, *I16Instruction, *BraInstruction:
+		case Instruction:
 			ip++
 			break
 		}

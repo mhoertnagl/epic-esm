@@ -1,4 +1,6 @@
-package main
+package ast
+
+//import "github.com/mhoertnagl/epic-esm/gen"
 
 type RegInstruction struct {
 	set bool

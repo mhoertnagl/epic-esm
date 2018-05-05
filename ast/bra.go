@@ -1,4 +1,4 @@
-package main
+package ast
 
 type BraInstruction struct {
 	cmd string

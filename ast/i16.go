@@ -1,38 +1,37 @@
-package main
+package ast
 
-type I12Instruction struct {
+type I16Instruction struct {
 	set bool
 	cmd string
 	cnd string
+	up  bool
 	rd  string
-	ra  string
 	num string
 }
 
-func NewI12Instr(
+func NewI16Instr(
 	set interface{},
 	cmd interface{},
 	cnd interface{},
+	up interface{},
 	rd interface{},
-	ra interface{},
-	num interface{}) (*I12Instruction, error) {
-	return &I12Instruction{
+	num interface{}) (*I16Instruction, error) {
+	return &I16Instruction{
 		set != nil,
 		asString(cmd, ""),
 		asString(cnd, "al"),
+		up != nil,
 		asString(rd, ""),
-		asString(ra, ""),
 		asString(num, "")}, nil
 }
 
-func (ins *I12Instruction) Generate(g *CodeGen) []uint32 {
+func (ins *I16Instruction) Generate(g *CodeGen) []uint32 {
 	code := g.placeDataCmd(ins.cmd)
 	code |= g.placeCnd(ins.cnd)
+	code |= g.placeI16Bit()
 	code |= g.placeSetBit(ins.set)
-	code |= g.placeI12Bit()
 	code |= g.placeRd(ins.rd)
-	code |= g.placeRa(ins.ra)
 	// hängt von der operation ab ob signed oder unsigned
-	code |= g.convertSignedNum(ins.num, 4, 12)
+	code |= g.convertSignedNum(ins.num, 4, 16)
 	return []uint32{code}
 }

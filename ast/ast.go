@@ -1,4 +1,4 @@
-package main
+package ast
 
 type Instruction interface {
 	Generate(g *CodeGen) []uint32

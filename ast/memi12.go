@@ -1,4 +1,4 @@
-package main
+package ast
 
 type MemI12Instruction struct {
 	set bool
