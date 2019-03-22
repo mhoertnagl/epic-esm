@@ -5,6 +5,8 @@ const (
 	BRA_MAX = 1 << 24
 )
 
+// TODO: Kann alles in einem Table integriert werden.
+
 var dataInstructions = map[string]uint32{
 	"add": 0x00000000,
 	"sub": 0x00000001,

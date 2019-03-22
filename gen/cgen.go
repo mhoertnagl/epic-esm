@@ -167,6 +167,7 @@ func (g *CodeGen) convertAddr(addr uint32) uint32 {
 }
 
 func (g *CodeGen) parseNum(n string) (int64, error) {
+	// strings.HasPrefix
 	if len(n) > 2 && n[0:2] == "0b" {
 		return strconv.ParseInt(n[2:], 2, 32)
 	}

@@ -2,6 +2,73 @@
 // 
 // -----------------------------------------------------------------------------
 
+'!':f=0 cmd:t[dop] cond:t[cond]=al rd:t[reg] ra:t[reg] rb:t[reg]=ra {zop:t[zop] smt:u5}:f=0
+  : 0000 cond[3] '!' rd[4] ra[4] rb[4] 0 zop[2] smt[5] cmd[4]
+  
+'!':f=0 cmd:t[dop] cond:t[cond]=al rd:t[reg] ra:t[reg] imm:s12 
+  : 0001 cond[3] '!' rd[4] ra[4] imm[12] cmd[4]
+  
+'!':f=0 cmd:t[dop] cond:t[cond]=al rd:t[reg] imm:n16 {'<<' '16'}:f=0
+  : 001 {'<<' '16'} cond[3] '!' rd[4] imm[16] cmd[4]
+
+'!':f=0 cmd:t[mop] cond:t[cond]=al rd:t[reg] ra:t[reg] '[' rb:t[reg] {zop:t[zop] smt:u5}:f=0 ']' 
+  : 0100 cond[3] '!' rd[4] ra[4] rb[4] 0 zop[2] smt[5] 000 cmd[1]
+  
+'!':f=0 cmd:t[mop] cond:t[cond]=al rd:t[reg] ra:t[reg] '[' imm:s12 ']'
+  : 0101 cond[3] '!' rd[4] ra[4] imm[12] 000 cmd[1]
+
+0110
+0111
+1000
+1001
+1010
+1011
+1100
+1101
+ 
+cmd:t[bop] cond:t[cond]=al addr:a25
+  : 111 cmd[1] cond[3] addr[25]
+ 
+---
+ 
+'!':f=0 cmd:t[dop] cond:t[cond]=al rd:t[reg] ra:t[reg] rb:t[reg]=ra {zop:t[zop] smt:u5}:f=0
+  : 000 cond[3] 0 '!' rd[4] ra[4] rb[4] 0 zop[2] smt[5] cmd[4]
+  
+'!':f=0 cmd:t[dop] cond:t[cond]=al rd:t[reg] ra:t[reg] imm:s12 
+  : 000 cond[3] 1 '!' rd[4] ra[4] imm[12] cmd[4]
+  
+'!':f=0 cmd:t[dop] cond:t[cond]=al rd:t[reg] imm:n16 {'<<' '16'}:f=0
+  : 001 cond[3] {'<<' '16'} '!' rd[4] imm[16] cmd[4]
+
+'!':f=0 cmd:t[mop] cond:t[cond]=al rd:t[reg] ra:t[reg] '[' rb:t[reg] {zop:t[zop] smt:u5}:f=0 ']' 
+  : 010 cond[3] 0 '!' rd[4] ra[4] rb[4] 0 zop[2] smt[5] 000 cmd[1]
+  
+'!':f=0 cmd:t[mop] cond:t[cond]=al rd:t[reg] ra:t[reg] '[' imm:s12 ']'
+  : 010 cond[3] 1 '!' rd[4] ra[4] imm[12] 000 cmd[1]
+
+011
+100
+101
+110
+ 
+cmd:t[bop] cond:t[cond]=al addr:a25
+  : 111 cond[3] cmd[1] addr[25] 
+
+---
+ 
+'nop' 
+  : {'movnv' r0 r0  '0'} 
+
+'sll' cond:t[cond] rd:t[reg] ra:t[reg] smt:u5 
+  : {'mov'cond rd ra '<<' smt} 
+  
+'swp' cond:t[cond] ra:t[reg] rb:t[reg] 
+  : {'xor'cond ra rb}
+  | {'xor'cond rb ra}
+  | {'xor'cond ra rb}
+
+
+  
 nop       <-> movnv r0 r0  0  // Nothingness.
 sll rd ra u5 <-> mov rd ra  << u5  // rd <- ra
 srl rd ra u5 <-> mov rd ra  >> u5
