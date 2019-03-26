@@ -143,11 +143,11 @@ rtn <->
 // Meta language
 def r0  = bits 00000
 ...
-def r14 = bits 11111
+def r15 = bits 11111
 
-def ra  = r0 | ... | r14
-def rb  = r0 | ... | r14
-def rd  = r0 | ... | r14
+def ra  = r0 | ... | r15
+def rb  = r0 | ... | r15
+def rd  = r0 | ... | r15
 
 def u5  = unsigned 5
 def s12 = signed 12

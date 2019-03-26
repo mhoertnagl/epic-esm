@@ -57,14 +57,14 @@ const (
 )
 
 var keywords = map[string]TokenType{
-  "nv": COND,
-  "eq": COND,
-  "lt": COND,
-  "le": COND,
-  "gt": COND,
-  "ge": COND,
-  "ne": COND,
-  "al": COND,
+  // "nv": COND,
+  // "eq": COND,
+  // "lt": COND,
+  // "le": COND,
+  // "gt": COND,
+  // "ge": COND,
+  // "ne": COND,
+  // "al": COND,
   
   "r0":  REG,
   "r1":  REG,

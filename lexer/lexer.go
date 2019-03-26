@@ -4,6 +4,8 @@ import (
 	"github.com/mhoertnagl/epic-esm/token"
 )
 
+const EOF byte = 0
+
 type Lexer struct {
 	input  string
 	curPos int
@@ -21,10 +23,10 @@ func (l *Lexer) Next() token.Token {
 	var tok token.Token
 
 	l.skipWhitespace()
-	// TODO: skip comments.
+  l.skipSingleLineComment()
 
 	switch l.ch {
-	case 0:
+	case EOF:
 		tok = l.newToken(token.EOF)
   case '!':
     tok = l.newToken(token.SET)
@@ -162,7 +164,7 @@ func (l *Lexer) read() {
 
 func (l *Lexer) peek() byte {
 	if l.nxtPos >= len(l.input) {
-		return 0
+		return EOF
 	}
 	return l.input[l.nxtPos]
 }
@@ -179,6 +181,14 @@ func (l *Lexer) skipWhitespace() {
 	for isWhitespace(l.ch) {
 		l.read()
 	}
+}
+
+func (l *Lexer) skipSingleLineComment() {
+  if l.ch == '/' && l.peek() == '/' {
+    for !isNewline(l.ch) && l.ch != EOF {
+  		l.read()
+  	}  
+  }
 }
 
 func (l *Lexer) readLabel() string {

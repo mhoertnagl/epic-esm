@@ -136,6 +136,26 @@ func TestSingleInstruction8(t *testing.T) {
 	test(t, input, tokens)
 }
 
+func TestSingleLineComment0(t *testing.T) {
+	input := "// Comment."
+
+	tokens := []token.Token{
+		{token.EOF, string(0)},
+	}
+	test(t, input, tokens)
+}
+
+func TestSingleLineComment1(t *testing.T) {
+	input := "inv r15 // Comment."
+
+	tokens := []token.Token{
+    {token.ID, "inv"},
+    {token.REG, "r15"},
+		{token.EOF, string(0)},
+	}
+	test(t, input, tokens)
+}
+
 const msgErrUnexpType = "%d: Unexpected token type [%s]. Expecting [%s]."
 const msgErrUnexpLiteral = "%d: Unexpected token literal [%s]. Expecting [%s]."
 

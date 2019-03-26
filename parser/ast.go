@@ -10,6 +10,14 @@ type Node interface {
 	String() string
 }
 
+type Err struct {
+  
+}
+
+func (n *Err) String() string {
+	return "ERROR"
+}
+
 type Instr struct {
 	Set  bool
   Cmd  string

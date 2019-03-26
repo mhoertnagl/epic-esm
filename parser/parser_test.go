@@ -8,6 +8,7 @@ import (
 
 func TestStatements(t *testing.T) {
 	test(t, "add r0 r1 r2", "add r0 r1 r2")
+  test(t, "! subeq r0 r1 r2", "! sub eq r0 r1 r2")
 }
 
 func test(t *testing.T, input string, expected string) {
