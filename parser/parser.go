@@ -109,6 +109,7 @@ func (p *Parser) parseInstruction() Node {
   set := false
   cmd := ""
   cond := "al"
+  args := []token.Token{}
   
   if p.curTokenIs(token.SET) {
     set = true
@@ -131,7 +132,7 @@ func (p *Parser) parseInstruction() Node {
   }
   
   for !p.curTokenIs(token.EOF) {
-    ins.Args = append(ins.Args, p.curToken)
+    args = append(args, p.curToken)
     p.next()
   }
   return ins
