@@ -72,7 +72,7 @@ func (g *CodeGen) placeSetBit(set bool) uint32 {
 }
 
 func (g *CodeGen) placeI16Bit() uint32 {
-	return g.place(1, 29, 3)
+	return g.place(1, 29, 1)
 }
 
 func (g *CodeGen) placeI12Bit() uint32 {

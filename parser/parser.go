@@ -78,26 +78,58 @@ func (p *Parser) Parse() Node {
 	return &Err{}
 }
 
+// func (p *Parser) parseInstruction() Node {
+//   ins := &Instr{}
+//   if p.curTokenIs(token.SET) {
+//     ins.Set = true
+//     p.next()
+//   }
+//   if p.curTokenIs(token.ID) {
+//     c := p.curToken.Literal
+//     if len(c) == 5 {
+//       ins.Cmd = c[:3]
+//       ins.Cond = c[3:]
+//     } else {
+//       ins.Cmd = c
+//       ins.Cond = "al"      
+//     }
+//     p.next()
+//   } else {
+//     // Error: expecting assembler command.
+//     return &Err{}
+//   }
+//   for !p.curTokenIs(token.EOF) {
+//     ins.Args = append(ins.Args, p.curToken)
+//     p.next()
+//   }
+//   return ins
+// }
+
 func (p *Parser) parseInstruction() Node {
-  ins := &Instr{}
+  set := false
+  cmd := ""
+  cond := "al"
+  
   if p.curTokenIs(token.SET) {
-    ins.Set = true
+    set = true
     p.next()
   }
+  
   if p.curTokenIs(token.ID) {
     c := p.curToken.Literal
     if len(c) == 5 {
-      ins.Cmd = c[:3]
-      ins.Cond = c[3:]
+      cmd = c[:3]
+      cond = c[3:]
     } else {
-      ins.Cmd = c
-      ins.Cond = "al"      
+      cmd = c
+      cond = "al"
     }
     p.next()
   } else {
     // Error: expecting assembler command.
-    return nil
+    return &Err{}
   }
+  
   for !p.curTokenIs(token.EOF) {
     ins.Args = append(ins.Args, p.curToken)
     p.next()

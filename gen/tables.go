@@ -22,7 +22,9 @@ var dataInstructions = map[string]uint32{
 	"sbu": 0x00000009,
 	//"mlu": 0x0000000a, multiplikation ist immer signed
 	//"dvu": 0x0000000b, division ist immer signed
+}
 
+var cmpInstructions = map[string]uint32{
 	"cmp": 0x0000000c,
 	"cpu": 0x0000000d,
 	"tst": 0x0000000e,

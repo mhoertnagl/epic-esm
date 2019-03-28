@@ -151,7 +151,9 @@ def rd  = r0 | ... | r15
 
 def u5  = unsigned 5
 def s12 = signed 12
-def s32 = signed 32
+def s16 = signed 16
+
+def << = bits 00
 
 def @lbl = ip-relative 26
 
@@ -163,11 +165,13 @@ def al = bits 111
 
 def cond = nv | ... | al default al
 
-def (<< 16) = bits 1
+def (<< 16) = bits 1 
 
-ins [!] add[cond] rd  ra  rb       = pat 000 cond ! 0 rd ra rb 00000000 0000
-ins [!] add[cond] rd  ra s12       = pat 000 cond ! 1 rd ra s12 0000
-ins [!] add[cond] rd  ra           = ins ! add cond rd ra ra
-ins [!] add[cond] rd s16 [(<< 16)] = pat 001 cond ! (<< 16) rd s16 0000
+ins [!] *add [cond] rd  ra  rb [(sop u5)]      = pat 000 cond ! 0 rd ra rb 00000000 0000
+ins [!] *add [cond] rd  ra s12       = pat 000 cond ! 1 rd ra s12 0000
+ins [!] *add [cond] rd  ra           = ins ! add cond rd ra ra
+ins [!] *add [cond] rd s16 [(<< 16)] = pat 001 cond ! (<< 16) rd s16 0000
 
-ins     nop                        = ins sllnv r0 r0 0 
+ins [!] *stw [cond] rd ra '[' rb ']' = ...
+
+ins     nop                        = ins sll nv r0 r0 0 
