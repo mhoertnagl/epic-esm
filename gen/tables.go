@@ -22,14 +22,34 @@ var dataInstructions = map[string]uint32{
 	"sbu": 0x00000009,
 	//"mlu": 0x0000000a, multiplikation ist immer signed
 	//"dvu": 0x0000000b, division ist immer signed
+  
+  // TODO: Müssen die extra behandelt werden?
+  "cmp": 0x0000000c,
+  "cpu": 0x0000000d,
+  "tst": 0x0000000e,
+  "mov": 0x0000000f,
 }
 
-var cmpInstructions = map[string]uint32{
-	"cmp": 0x0000000c,
-	"cpu": 0x0000000d,
-	"tst": 0x0000000e,
-	"mov": 0x0000000f,
+func IsDataInstruction(cmd string) bool {
+  _, ok := dataInstructions[cmd]
+  return ok
 }
+
+var shiftInstructions = map[string]uint32{
+  // Shift operations are mov operations with a predefined shift.
+  "sll": 0x0000000f,
+  "srl": 0x0000020f,
+  "sra": 0x0000040f,
+  "rol": 0x0000060f,
+  "ror": 0x0000060f,
+}
+
+// var cmpInstructions = map[string]uint32{
+// 	"cmp": 0x0000000c,
+// 	"cpu": 0x0000000d,
+// 	"tst": 0x0000000e,
+// 	"mov": 0x0000000f,
+// }
 
 var memInstructions = map[string]uint32{
 	"stw": 0x40000000,
@@ -47,11 +67,11 @@ var shiftOps = map[string]uint32{
 	">>>": 2,
 	"<<>": 3,
 	"<>>": 3,
-	"sll": 0,
-	"srl": 1,
-	"sra": 2,
-	"rol": 3,
-	"ror": 3,
+}
+
+func IsShiftOp(cmd string) bool {
+  _, ok := shiftOps[cmd]
+  return ok
 }
 
 var registers = map[string]uint32{

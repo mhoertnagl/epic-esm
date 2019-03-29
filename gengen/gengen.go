@@ -189,6 +189,10 @@ type AsmContext interface {
   Error(format string, a ...interface{})
 }
 
+type asmContext struct {
+  
+}
+
 type SymConstraint func (c AsmContext, val string) bool
 
 func unionConstraint (union *UnionPattern) SymConstraint {
@@ -256,12 +260,12 @@ type Seq interface {
 }
 
 type InstrSeq struct {
-  Patterns []Pattern
+  Literals []*LiteralPattern
 }
 
 func (s *InstrSeq) Seq() string {
   kids := []string{}
-  for _, kid := range s.Patterns {
+  for _, kid := range s.Literals {
     kids = append(kids, kid.Pattern())
   }
   return fmt.Sprintf("ins %s", strings.Join(kids, " "))
@@ -281,7 +285,7 @@ func (s *PatternSeq) Seq() string {
 
 type Transformation struct {
   Key InstrSeq
-  Val Seq
+  Val []Seq
 }
 
 var transformations = map[string][]Transformation{
@@ -294,3 +298,52 @@ var transformations = map[string][]Transformation{
 //   NewLiteralPattern("<<"),
 //   NewLiteralPattern("16"),
 // ),
+
+func (c *asmContext) place(i uint32, s uint8, p uint8) uint32 {
+	return uint32((i & ((1 << p) - 1)) << s)
+}
+
+// Finden einer Instruktion in den Transformations.
+// Constraints überprüfen.
+// Conversions anwenden.
+// Erstellen einer env Map aus der gematchten Instruktion.
+
+func (c *asmContext) GeneratePat(seq *PatternSeq, env map[string]*BitsPattern) uint32 {
+  var ins uint32
+  var idx uint8 = 31
+  for _, pattern := range seq.Patterns {
+    switch p := pattern.(type) {
+    case *BitsPattern:
+      idx -= p.Len
+      ins |= c.place(p.Val, p.Len, idx)
+    case *VarPattern:
+      bp, ok := env[p.Name]
+      if !ok {
+        // Report unzugewiesener parameter.
+      }
+      idx -= bp.Len
+      ins |= c.place(bp.Val, bp.Len, idx)      
+    default:
+      // Report error
+    }
+  }
+  return ins
+}
+
+// for _, pattern := range seq.Patterns {
+//   switch p := pattern.(type) {
+//   case *BitsPattern:
+//     idx, ins = c.GenerateBitsPat(idx, ins, p)
+//   case *VarPattern:
+//     bp := c.Resolve(p)
+//     idx, ins = c.GenerateBitsPat(idx, ins, bp)
+//   }
+// }
+
+// func (c *asmContext) GenerateBitsPat(idx uint8,ins uint32, p *BitsPattern) (uint8, uint32) {
+//   return idx - p.Len, ins | c.place(p.Val, p.Len, idx - p.Len)
+// }
+
+func (c *asmContext) Resolve(p *VarPattern) *BitsPattern {
+  
+}

@@ -34,7 +34,17 @@ type RegInstruction struct {
 }
 
 func (n *RegInstruction) String() string {
-	return ""
+  args := []string{}
+  if n.Set {
+    args = append(args, "!")
+  }
+  args = append(args, n.Cmd)
+  args = append(args, n.Cnd)
+  args = append(args, n.Rd)
+  args = append(args, n.Ra)
+  args = append(args, n.Rb)
+
+	return strings.Join(args, " ")
 }
 
 type I12Instruction struct {
