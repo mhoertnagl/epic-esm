@@ -170,13 +170,28 @@ func (p *Parser) parseDataInstr(set bool, cmd string, cond string) Node {
   if p.nxtTokenIs(token.NUM) {
     return p.parseI12Instr(set, cmd, cond, rd, ra)
   }
+  var rb string
   if !p.expectNext(token.REG) {
+    rb = ra
+    ra = rd
+  } else {
+    rb = p.curToken.Literal
+  }  
+  
+  sh := p.nullShift()
+  if gen.IsShiftOp(p.nxtToken.Literal) {
+    s, ok := p.parseShift()
+    if !ok {
+      return p.errorNode()
+    }
+    sh = s
+  }
+  
+  if !p.expectNext(token.EOF) {
+    // Error too many arguments.
     return p.errorNode()
   }
-  rb := p.curToken.Literal
-  //if !p.expectNext(token.EOF) {
-  sh := p.parseShift()
-  //}  
+  
   return &RegInstruction{
     Set: set,
     Cmd: cmd,
@@ -222,23 +237,19 @@ func (p *Parser) parseI12Instr(set bool, cmd string, cond string, rd string, ra 
   }
 }
 
-func (p *Parser) parseShift() *NumShift {
-  sh := &NumShift{}
-  if !p.nxtTokenIs(token.EOF) {
-    p.next()
-    sh.Cmd = p.curToken.Literal
-    if !gen.IsShiftOp(sh.Cmd) {
-      p.error("Expecting shift operator.")
-      return p.nullShift()
-    }
-    if !p.expectNext(token.NUM) {
-      return p.nullShift()
-    }
-    sh.Num = p.curToken.Literal
+func (p *Parser) parseShift() (*NumShift, bool) {
+  sh := p.nullShift()
+  p.next()
+  sh.Cmd = p.curToken.Literal
+  if !p.expectNext(token.NUM) {  
+    // Error expecting number.    
+    p.error("Expecting shift number.")    
+    return p.nullShift(), false
   }
-  return p.nullShift()
+  sh.Num = p.curToken.Literal
+  return sh, true  
 }
 
 func (p *Parser) nullShift() *NumShift {
-  return &NumShift{ Cmd: "sll", Num: "0" }
+  return &NumShift{ Cmd: "<<", Num: "0" }
 }

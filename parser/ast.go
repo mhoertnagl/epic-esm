@@ -43,6 +43,8 @@ func (n *RegInstruction) String() string {
   args = append(args, n.Rd)
   args = append(args, n.Ra)
   args = append(args, n.Rb)
+  args = append(args, n.Sh.Cmd)
+  args = append(args, n.Sh.Num)
 
 	return strings.Join(args, " ")
 }
@@ -57,7 +59,17 @@ type I12Instruction struct {
 }
 
 func (n *I12Instruction) String() string {
-	return ""
+  args := []string{}
+  if n.Set {
+    args = append(args, "!")
+  }
+  args = append(args, n.Cmd)
+  args = append(args, n.Cnd)
+  args = append(args, n.Rd)
+  args = append(args, n.Ra)
+  args = append(args, n.Num)
+
+	return strings.Join(args, " ")
 }
 
 type I16Instruction struct {
@@ -70,7 +82,16 @@ type I16Instruction struct {
 }
 
 func (n *I16Instruction) String() string {
-	return ""
+  args := []string{}
+  if n.Set {
+    args = append(args, "!")
+  }
+  args = append(args, n.Cmd)
+  args = append(args, n.Cnd)
+  args = append(args, n.Rd)
+  args = append(args, n.Num)
+
+	return strings.Join(args, " ")
 }
 
 type Instr struct {

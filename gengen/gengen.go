@@ -182,15 +182,19 @@ type AsmContext interface {
   
   FindSymbol(name string) (*Symbol, bool)
   
-  GenerateIns(seq *InstrSeq) []uint32
+  //GenerateIns(seq *InstrSeq) []uint32
   
-  GeneratePat(seq *PatternSeq) uint32 
+  GeneratePat(seq *PatternSeq, env Env) uint32 
   
   Error(format string, a ...interface{})
 }
 
 type asmContext struct {
   
+}
+
+func NewAsmContext() AsmContext {
+  return &asmContext{}
 }
 
 type SymConstraint func (c AsmContext, val string) bool
@@ -308,26 +312,40 @@ func (c *asmContext) place(i uint32, s uint8, p uint8) uint32 {
 // Conversions anwenden.
 // Erstellen einer env Map aus der gematchten Instruktion.
 
-func (c *asmContext) GeneratePat(seq *PatternSeq, env map[string]*BitsPattern) uint32 {
+type Env map[string]*BitsPattern
+
+func (c *asmContext) GeneratePat(seq *PatternSeq, env Env) uint32 {
   var ins uint32
-  var idx uint8 = 31
+  var idx uint8 = 32
   for _, pattern := range seq.Patterns {
     switch p := pattern.(type) {
     case *BitsPattern:
       idx -= p.Len
-      ins |= c.place(p.Val, p.Len, idx)
+      ins |= c.place(p.Val, idx, p.Len)
     case *VarPattern:
       bp, ok := env[p.Name]
       if !ok {
         // Report unzugewiesener parameter.
       }
       idx -= bp.Len
-      ins |= c.place(bp.Val, bp.Len, idx)      
+      ins |= c.place(bp.Val, idx, bp.Len)      
     default:
       // Report error
     }
   }
   return ins
+}
+
+func (c *asmContext) Ip() uint32 {
+  return 0
+}
+
+func (c *asmContext) FindSymbol(name string) (*Symbol, bool) {
+  return nil, false
+}
+
+func (c *asmContext) Error(format string, a ...interface{}) {
+  
 }
 
 // for _, pattern := range seq.Patterns {
@@ -345,5 +363,5 @@ func (c *asmContext) GeneratePat(seq *PatternSeq, env map[string]*BitsPattern) u
 // }
 
 func (c *asmContext) Resolve(p *VarPattern) *BitsPattern {
-  
+  return nil
 }
