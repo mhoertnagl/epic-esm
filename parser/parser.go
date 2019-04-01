@@ -6,6 +6,7 @@ import (
 	"github.com/mhoertnagl/epic-esm/lexer"
 	"github.com/mhoertnagl/epic-esm/token"
   "github.com/mhoertnagl/epic-esm/gen"
+  "github.com/mhoertnagl/epic-esm/ast"
 )
 
 type Parser struct {

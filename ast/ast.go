@@ -1,4 +1,4 @@
-package parser
+package ast
 
 import (
   "strings"
@@ -100,6 +100,39 @@ type Instr struct {
   Cond string
   Args []token.Token
 }
+
+func (c *asmContext) Generate(ins *Instr) []uint32 {
+  if gen.IsDataInstruction(ins.Cmd) {
+    return GenerateData(ins)
+  }
+  switch ins.Cmd {
+  case "add": return GenerateData(ins)
+  }
+}
+
+func (c *asmContext) GenerateData(ins *Instr) []uint32 {
+  g := NewCoder()
+  g.PlaceThis()
+  g.PlaceThat()
+  // add rd ra rb sop num
+  // add rd ra rb
+  // add rd ra num
+  // add rd ra
+  // add rd num 
+  //
+  c.Emit(g)
+}
+
+func GenerateMem(ins *Instr) []uint32 {
+  // stw rd ra [ rb ] sop num
+  // stw rd ra [ rb ]
+  // stw rd ra [ num ]
+}
+
+func GenerateBra(ins *Instr) []uint32 {
+  // bra rd @lbl
+}
+
 // 
 // func (n *Instr) String() string {
 //   params := []string{}
