@@ -71,10 +71,6 @@ func (p *Parser) Errors() []string {
 	return p.errors
 }
 
-func (p *Parser) errorNode() Node {
-	return &Err{}
-}
-
 func (p *Parser) error(format string, a ...interface{}) {
 	p.errors = append(p.errors, fmt.Sprintf(format, a...))
 }
@@ -87,170 +83,57 @@ func (p *Parser) errorNextLiteral(exp string) {
 	p.error("Expected literal [%s] but got [%s].", exp, p.nxtToken.Literal)
 }
 
+func (p *Parser) errorNode() Node {
+	return &ast.Err{}
+}
+
+func (p *Parser) emptyNode() Node {
+	return &ast.Empty{}
+}
+
 func (p *Parser) Parse() Node {
   switch p.curToken.Typ {
+  case token.EOF:
+    return p.emptyNode()
+  case token.LBL:
+    return p.parseLabel()
   case token.SET:
     return p.parseInstruction()
   case token.ID:
     return p.parseInstruction()
   }
-	return &Err{}
+	return p.errorNode()
 }
 
-// func (p *Parser) parseInstruction() Node {
-//   ins := &Instr{}
-//   if p.curTokenIs(token.SET) {
-//     ins.Set = true
-//     p.next()
-//   }
-//   if p.curTokenIs(token.ID) {
-//     c := p.curToken.Literal
-//     if len(c) == 5 {
-//       ins.Cmd = c[:3]
-//       ins.Cond = c[3:]
-//     } else {
-//       ins.Cmd = c
-//       ins.Cond = "al"      
-//     }
-//     p.next()
-//   } else {
-//     // Error: expecting assembler command.
-//     return &Err{}
-//   }
-//   for !p.curTokenIs(token.EOF) {
-//     ins.Args = append(ins.Args, p.curToken)
-//     p.next()
-//   }
-//   return ins
-// }
+func (p *Parser) parseLabel() Node {
+  ins := &ast.Label{}
+  ins.Name = p.curToken.Literal
+  return ins
+}
 
 func (p *Parser) parseInstruction() Node {
-  set := false
-  cmd := ""
-  cond := "al"
-
+  ins := &ast.Instr{}
   if p.curTokenIs(token.SET) {
-    set = true
+    ins.Set = true
     p.next()
   }
-  
   if p.curTokenIs(token.ID) {
     c := p.curToken.Literal
     if len(c) == 5 {
-      cmd = c[:3]
-      cond = c[3:]
+      ins.Cmd = c[:3]
+      ins.Cond = c[3:]
     } else {
-      cmd = c
-      cond = "al"
+      ins.Cmd = c
+      ins.Cond = "al"      
     }
+    p.next()
   } else {
     // Error: expecting assembler command.
     return p.errorNode()
   }
-  
-  if gen.IsDataInstruction(cmd) {
-    return p.parseDataInstr(set, cmd, cond)
-  }
-  
-  p.error("Unexpected command [%s]", cmd)
-  return p.errorNode()
-}
-
-func (p *Parser) parseDataInstr(set bool, cmd string, cond string) Node {
-  if !p.expectNext(token.REG) {
-    return p.errorNode()
-  }
-  rd := p.curToken.Literal
-  if p.nxtTokenIs(token.NUM) {
-    return p.parseI16Instr(set, cmd, cond, rd)
-  }
-  if !p.expectNext(token.REG) {
-    return p.errorNode()
-  }
-  ra := p.curToken.Literal
-  if p.nxtTokenIs(token.NUM) {
-    return p.parseI12Instr(set, cmd, cond, rd, ra)
-  }
-  var rb string
-  if !p.expectNext(token.REG) {
-    rb = ra
-    ra = rd
-  } else {
-    rb = p.curToken.Literal
-  }  
-  
-  sh := p.nullShift()
-  if gen.IsShiftOp(p.nxtToken.Literal) {
-    s, ok := p.parseShift()
-    if !ok {
-      return p.errorNode()
-    }
-    sh = s
-  }
-  
-  if !p.expectNext(token.EOF) {
-    // Error too many arguments.
-    return p.errorNode()
-  }
-  
-  return &RegInstruction{
-    Set: set,
-    Cmd: cmd,
-    Cnd: cond,
-    Rd: rd,
-    Ra: ra,
-    Rb: rb,
-    Sh: sh,
-  }
-}
-
-func (p *Parser) parseI16Instr(set bool, cmd string, cond string, rd string) Node {
-  p.next()
-  num := p.curToken
-  up := false
-  if p.nxtTokenIs(token.SLL) {
+  for !p.curTokenIs(token.EOF) {
+    ins.Args = append(ins.Args, p.curToken)
     p.next()
-    if !p.expectNextLiteral("16") {
-      return p.errorNode()
-    }
-    up = true
   }
-  return &I16Instruction{
-    Set: set,
-    Cmd: cmd,
-    Cnd: cond,
-    Rd: rd,
-    Num: num.Literal,
-    Up: up,
-  }
-}
-
-func (p *Parser) parseI12Instr(set bool, cmd string, cond string, rd string, ra string) Node {
-  p.next()
-  num := p.curToken
-  return &I12Instruction{
-    Set: set,
-    Cmd: cmd,
-    Cnd: cond,
-    Rd: rd,
-    Ra: ra,
-    Num: num.Literal,
-  }
-}
-
-func (p *Parser) parseShift() (*NumShift, bool) {
-  sh := p.nullShift()
-  p.next()
-  sh.Cmd = p.curToken.Literal
-  if !p.expectNext(token.NUM) {  
-    // Error expecting number.    
-    p.error("Expecting shift number.")    
-    return p.nullShift(), false
-  }
-  sh.Num = p.curToken.Literal
-  return sh, true  
-}
-
-func (p *Parser) nullShift() *NumShift {
-  return &NumShift{ Cmd: "<<", Num: "0" }
+  return ins
 }
