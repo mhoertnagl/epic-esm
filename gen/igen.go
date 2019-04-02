@@ -2,16 +2,40 @@ package gen
 
 import(
   //"fmt"
-  
+  "github.com/mhoertnagl/epic-esm/token"
   "github.com/mhoertnagl/epic-esm/ast"
 )
+
+type Generator func(ins *ast.Instr)
+
+type ArgFit struct {
+  Args []token.TokenType
+  Gen Generator
+}
+
+var Reg3 []token.TokenType = []token.TokenType{
+  token.REG,
+  token.REG,
+  token.REG,
+}
+
+var mapping = map[string]*ArgFit{
+  "add": &ArgFit{Reg3, c.generateData},
+}
 
 type InsGen struct {
   code     uint32
   ctx      AsmContext
 }
 
+func NewInsGen(c AsmContext) {
+  var mapping = map[string]*ArgFit{
+    "add": &ArgFit{Reg3, c.generateData},
+  }
+}
+
 func (c *InsGen) Generate(ins *ast.Instr) {
+  
   if IsDataInstruction(ins.Cmd) {
     c.generateData(ins)
   }

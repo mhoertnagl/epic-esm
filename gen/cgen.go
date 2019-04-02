@@ -30,6 +30,10 @@ type CodeGen struct {
 // 	return codes
 // }
 
+func (g *CodeGen) Emit() uint32 {
+  return g.code
+}
+
 func (g *CodeGen) PlaceDataCmd(cmd string) {
 	code, ok := dataInstructions[cmd]
 	if !ok {
