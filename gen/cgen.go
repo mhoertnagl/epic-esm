@@ -11,6 +11,7 @@ type Block struct {
   Pattern string
   Template uint32
 }
+
 type SymbolValidation func(ctx AsmContext, val string) bool
 type SymbolConversion func(ctx AsmContext, val string) int32
 type BitValidation func(ctx AsmContext, val int32) bool
@@ -183,7 +184,7 @@ func parseNum(n string) (int64, error) {
 	return strconv.ParseInt(n, 10, 32)
 }
 
-func pcRelativeConversion() SymbolConversion {
+func branchLabelConversion() SymbolConversion {
   return func (ctx AsmContext, lbl string) int32 {
     sym, ok := ctx.FindSymbol(lbl)
     if !ok {
@@ -193,6 +194,22 @@ func pcRelativeConversion() SymbolConversion {
     return int32(sym.addr - ctx.Ip());
   }
 }
+
+const (
+	BRA_MIN = -(1 << 24)
+	BRA_MAX = 1 << 24
+)
+
+func branchDistanceValidation() BitValidation {
+  return func (ctx AsmContext, bra int32) bool {
+    if bra < BRA_MIN || bra >= BRA_MAX {
+    	ctx.Error("Branch distance [%d] too large.", bra)
+      return false
+    }
+    return true
+  }
+}
+
 
 func rangeValidation(min int32, max int32) BitValidation {
   return func (ctx AsmContext, val int32) bool {
@@ -251,13 +268,17 @@ func NewCodeGen(ctx AsmContext) *CodeGen {
   g.AddSymConv("u12", numberConversion(0, 8192))
   g.AddBitConv("u12", placementConversion(12, 4))
   
+  g.AddSymConv("@25", branchLabelConversion())
+  g.AddBitVal("@25", branchDistanceValidation())
+  g.AddBitConv("@25", placementConversion(25, 0))
+  
   g.Add("_ add c rd ra rb",  0x00000000)
   g.Add("_ add c rd ra u12", 0x01000000)
   g.Add("! add c rd ra rb",  0x02000000)
   g.Add("! add c rd ra u12", 0x03000000)
   
-  g.Add("_ bra c @26",       0xe0000000)
-  g.Add("_ brl c @26",       0xe2000000)
+  g.Add("_ bra c @25",       0xe0000000)
+  g.Add("_ brl c @25",       0xe2000000)
     
   return g
 }
@@ -271,7 +292,7 @@ func (g *CodeGen) Generate(ins *ast.Instr) uint32 {
   }
   code := blk.Template
   params := strings.Split(blk.Pattern, " ")
-  // Skip first two params (! or _ and command).
+  // Skip set bit (! or _) and command.
   for idx, param := range params[2:] {
     sym := ins.Args[idx - 2].Literal
     g.GetSymVal(param)(g.ctx, sym)

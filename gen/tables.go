@@ -1,9 +1,9 @@
 package gen
 
-const (
-	BRA_MIN = -(1 << 24)
-	BRA_MAX = 1 << 24
-)
+// const (
+// 	BRA_MIN = -(1 << 24)
+// 	BRA_MAX = 1 << 24
+// )
 
 // TODO: Kann alles in einem Table integriert werden.
 
