@@ -2,36 +2,17 @@ package gen
 
 import(
   //"fmt"
-  "github.com/mhoertnagl/epic-esm/token"
+  //"github.com/mhoertnagl/epic-esm/token"
   "github.com/mhoertnagl/epic-esm/ast"
 )
 
-type Generator func(ins *ast.Instr)
-
-type ArgFit struct {
-  Args []token.TokenType
-  Gen Generator
-}
-
-var Reg3 []token.TokenType = []token.TokenType{
-  token.REG,
-  token.REG,
-  token.REG,
-}
-
-var mapping = map[string]*ArgFit{
-  "add": &ArgFit{Reg3, c.generateData},
-}
-
 type InsGen struct {
-  code     uint32
+  code     []uint32
   ctx      AsmContext
 }
 
-func NewInsGen(c AsmContext) {
-  var mapping = map[string]*ArgFit{
-    "add": &ArgFit{Reg3, c.generateData},
-  }
+func NewInsGen(ctx AsmContext) *InsGen {
+  return &InsGen{[]uint32{}, ctx}
 }
 
 func (c *InsGen) Generate(ins *ast.Instr) {
@@ -49,7 +30,7 @@ func (c *InsGen) Generate(ins *ast.Instr) {
 }
 
 func (c *InsGen) generateData(ins *ast.Instr) {
-  g := c.ctx.NewCodeGen()
+  g := NewCodeGen(c.ctx)
   g.PlaceDataCmd(ins.Cmd)
   g.PlaceCnd(ins.Cond)
   g.PlaceSetBit(ins.Set)
@@ -60,7 +41,8 @@ func (c *InsGen) generateData(ins *ast.Instr) {
   // add rd ra
   // add rd num 
   //
-  c.Emit(g)
+  g.Emit()
+  //c.Emit(g)
 }
 
 func (c *InsGen) generateMem(ins *ast.Instr) {
