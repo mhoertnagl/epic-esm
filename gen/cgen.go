@@ -7,6 +7,8 @@ import (
   "github.com/mhoertnagl/epic-esm/ast"
 )
 
+type ParamHashs map[string]string
+
 type Block struct {
   Pattern string
   Template uint32
@@ -24,17 +26,37 @@ type BitValidations map[string]BitValidation
 type BitConversions map[string]BitConversion
 
 type CodeGen struct {
-  //code     uint32
-  ctx      AsmContext
-  blocks   Blocks
-  symVals  SymbolValidations
-  symConvs SymbolConversions
-  bitVals  BitValidations
-  bitConvs BitConversions
+  ctx        AsmContext
+  paramHashs ParamHashs
+  blocks     Blocks
+  symVals    SymbolValidations
+  symConvs   SymbolConversions
+  bitVals    BitValidations
+  bitConvs   BitConversions
+}
+
+func (g *CodeGen) AddParamHash(param string, hash string) {
+  g.paramHashs[param] = hash
 }
 
 func (g *CodeGen) Add(pattern string, template uint32) {
-  
+  hashs := []string{}
+  params := strings.Split(pattern, " ")
+  for _, p := range params {
+    h, ok := g.paramHashs[p]
+    if ok {
+      hashs = append(hashs, h)
+    } else {
+      // If there is no parameter hash defined, use the original parameter value
+      // instead. 
+      hashs = append(hashs, p)
+    }
+  }
+  hash := strings.Join(hashs, " ")
+  g.blocks[hash] = &Block{ 
+    Pattern: pattern, 
+    Template: template, 
+  }
 }
 
 func symValID(ctx AsmContext, val string) bool { 
@@ -55,8 +77,8 @@ func bitConvID(ctx AsmContext, val int32) int32 {
   return 0 
 }
 
-func (g *CodeGen) AddSymVal(param string, f SymbolValidation) {
-  g.symVals[param] = f
+func (g *CodeGen) AddSymVal(param string, fun SymbolValidation) {
+  g.symVals[param] = fun
 }
 
 func (g *CodeGen) GetSymVal(param string) SymbolValidation {
@@ -67,8 +89,8 @@ func (g *CodeGen) GetSymVal(param string) SymbolValidation {
   return f
 }
 
-func (g *CodeGen) AddSymConv(param string, f SymbolConversion) {
-  g.symConvs[param] = f
+func (g *CodeGen) AddSymConv(param string, fun SymbolConversion) {
+  g.symConvs[param] = fun
 }
 
 func (g *CodeGen) GetSymConv(param string) SymbolConversion {
@@ -79,8 +101,8 @@ func (g *CodeGen) GetSymConv(param string) SymbolConversion {
   return f
 }
 
-func (g *CodeGen) AddBitVal(param string, f BitValidation) {
-  g.bitVals[param] = f
+func (g *CodeGen) AddBitVal(param string, fun BitValidation) {
+  g.bitVals[param] = fun
 }
 
 func (g *CodeGen) GetBitVal(param string) BitValidation {
@@ -91,8 +113,8 @@ func (g *CodeGen) GetBitVal(param string) BitValidation {
   return f
 }
 
-func (g *CodeGen) AddBitConv(param string, f BitConversion) {
-  g.bitConvs[param] = f
+func (g *CodeGen) AddBitConv(param string, fun BitConversion) {
+  g.bitConvs[param] = fun
 }
 
 func (g *CodeGen) GetBitConv(param string) BitConversion {
@@ -233,8 +255,8 @@ func placementConversion(p uint8, s uint8) BitConversion {
 
 func NewCodeGen(ctx AsmContext) *CodeGen {
  	g := &CodeGen{
-    //0, 
     ctx, 
+    ParamHashs{},
     Blocks{},
     SymbolValidations{},
     SymbolConversions{},
@@ -242,13 +264,14 @@ func NewCodeGen(ctx AsmContext) *CodeGen {
     BitConversions{},
   }
   
-  // rd -> r
-  // ra -> r 
-  // rb -> r 
-  // u12 -> n
-  // s12 -> n 
-  // @26 -> @ 
-  // usw.
+  g.AddParamHash("rd",  "r")
+  g.AddParamHash("ra",  "r")
+  g.AddParamHash("rb",  "r")
+  g.AddParamHash("s12", "n")
+  g.AddParamHash("u12", "n")
+  g.AddParamHash("s16", "n")
+  g.AddParamHash("u16", "n")
+  g.AddParamHash("@25", "@")
   
   g.AddSymConv("c", conditionConversion())
   g.AddBitConv("c", placementConversion(3, 26))
@@ -262,11 +285,17 @@ func NewCodeGen(ctx AsmContext) *CodeGen {
   g.AddSymConv("rb", registerNameConversion())
   g.AddBitConv("rb", placementConversion(4, 12))
   
-  g.AddSymConv("s12", numberConversion(-4095, 4096))
+  g.AddSymConv("s12", numberConversion(-4096, 4095))
   g.AddBitConv("s12", placementConversion(12, 4))
   
   g.AddSymConv("u12", numberConversion(0, 8192))
   g.AddBitConv("u12", placementConversion(12, 4))
+  
+  g.AddSymConv("s16", numberConversion(-32768, 32767))
+  g.AddBitConv("s16", placementConversion(16, 4))
+  
+  g.AddSymConv("u16", numberConversion(0, 65535))
+  g.AddBitConv("u16", placementConversion(16, 4))
   
   g.AddSymConv("@25", branchLabelConversion())
   g.AddBitVal("@25", branchDistanceValidation())
@@ -274,11 +303,13 @@ func NewCodeGen(ctx AsmContext) *CodeGen {
   
   g.Add("_ add c rd ra rb",  0x00000000)
   g.Add("_ add c rd ra u12", 0x01000000)
+  g.Add("_ add c rd u16",    0x20000000)
   g.Add("! add c rd ra rb",  0x02000000)
   g.Add("! add c rd ra u12", 0x03000000)
+  g.Add("! add c rd u16",    0x22000000)
   
-  g.Add("_ bra c @25",       0xe0000000)
-  g.Add("_ brl c @25",       0xe2000000)
+  g.Add("_ bra c @25",       0xE0000000)
+  g.Add("_ brl c @25",       0xE2000000)
     
   return g
 }
