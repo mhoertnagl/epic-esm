@@ -15,10 +15,10 @@ type Block struct {
   Template uint32
 }
 
-type SymbolValidation func(ctx AsmContext, val string) bool
-type SymbolConversion func(ctx AsmContext, val string) int32
-type BitValidation func(ctx AsmContext, val int32) bool
-type BitConversion func(ctx AsmContext, val int32) int32
+type SymbolValidation func(ctx AsmContext, param string, arg string) bool
+type SymbolConversion func(ctx AsmContext, param string, arg string) int32
+type BitValidation func(ctx AsmContext, param string, arg int32) bool
+type BitConversion func(ctx AsmContext, param string, arg int32) int32
 
 type Blocks map[string]*Block
 type SymbolValidations map[string]SymbolValidation
@@ -60,20 +60,20 @@ func (g *CodeGen) Add(pattern string, template uint32) {
   }
 }
 
-func symValID(ctx AsmContext, val string) bool { 
+func symValID(ctx AsmContext, param string, val string) bool { 
   return true 
 }
 
-func symConvID(ctx AsmContext, val string) int32 { 
+func symConvID(ctx AsmContext, param string, val string) int32 { 
   ctx.Error("Missing symbol converter for argument [%s].", val)
   return 0 
 }
 
-func bitValID(ctx AsmContext, val int32) bool { 
+func bitValID(ctx AsmContext, param string, val int32) bool { 
   return true 
 }
 
-func bitConvID(ctx AsmContext, val int32) int32 { 
+func bitConvID(ctx AsmContext, param string, val int32) int32 { 
   //ctx.Error("Missing bit converter for argument [%s].", val)
   return 0 
 }
@@ -126,6 +126,16 @@ func (g *CodeGen) GetBitConv(param string) BitConversion {
   return f
 }
 
+func exactMatchValidation() SymbolValidation {
+  return func(ctx AsmContext, param string, arg string) bool {
+    if param != arg {
+      ctx.Error("Unexpected token [%s]. Expected [%s]", arg, param)
+      return false
+    }
+    return true
+  }
+}
+
 var registers = map[string]int32{
 	"r0":  0,
 	"r1":  1,
@@ -149,7 +159,7 @@ var registers = map[string]int32{
 }
 
 func registerNameConversion() SymbolConversion {
-  return func (ctx AsmContext, rx string) int32 {
+  return func (ctx AsmContext, param string, rx string) int32 {
     	reg, ok := registers[rx]
     	if !ok {
     		ctx.Error("Unrecognized register [%s].", rx)
@@ -170,7 +180,7 @@ var conditions = map[string]int32{
 }
 
 func conditionConversion() SymbolConversion {
-  return func (ctx AsmContext, cnd string) int32 {
+  return func (ctx AsmContext, param string, cnd string) int32 {
     	code, ok := conditions[cnd]
     	if !ok {
     		ctx.Error("Unrecognized condition flag [%s].", cnd)
@@ -188,7 +198,7 @@ var shiftOps = map[string]int32{
 }
 
 func sopConversion() SymbolConversion {
-  return func (ctx AsmContext, sop string) int32 {
+  return func (ctx AsmContext, param string, sop string) int32 {
     	code, ok := shiftOps[sop]
     	if !ok {
     		ctx.Error("Unrecognized shift operator [%s].", sop)
@@ -198,7 +208,7 @@ func sopConversion() SymbolConversion {
 }
 
 func numberConversion(min int64, max int64) SymbolConversion {
-  return func (ctx AsmContext, num string) int32 {
+  return func (ctx AsmContext, param string, num string) int32 {
     i, err := parseNum(num)
 
   	if err != nil {
@@ -226,7 +236,7 @@ func parseNum(n string) (int64, error) {
 }
 
 func branchLabelConversion() SymbolConversion {
-  return func (ctx AsmContext, lbl string) int32 {
+  return func (ctx AsmContext, param string, lbl string) int32 {
     sym, ok := ctx.FindSymbol(lbl)
     if !ok {
       ctx.Error("")
@@ -242,7 +252,7 @@ const (
 )
 
 func branchDistanceValidation() BitValidation {
-  return func (ctx AsmContext, bra int32) bool {
+  return func (ctx AsmContext, param string, bra int32) bool {
     if bra < BRA_MIN || bra >= BRA_MAX {
     	ctx.Error("Branch distance [%d] too large.", bra)
       return false
@@ -253,7 +263,7 @@ func branchDistanceValidation() BitValidation {
 
 
 func rangeValidation(min int32, max int32) BitValidation {
-  return func (ctx AsmContext, val int32) bool {
+  return func (ctx AsmContext, param string, val int32) bool {
     if val < min {
       ctx.Error("")
       return false
@@ -267,7 +277,7 @@ func rangeValidation(min int32, max int32) BitValidation {
 }
 
 func placementConversion(p uint8, s uint8) BitConversion {
-	return func (ctx AsmContext, val int32) int32 {
+	return func (ctx AsmContext, param string, val int32) int32 {
     return (val & ((1 << p) - 1)) << s
   }
 }
@@ -292,6 +302,23 @@ func NewCodeGen(ctx AsmContext) *CodeGen {
   g.AddParamHash("s16", "n")
   g.AddParamHash("u16", "n")
   g.AddParamHash("@25", "@")
+  // For 16bit immediate instructions that address the upper halfword of a
+  // register, e.g. oor r0 0xFEDC << 16.
+  // The parser will eject an instruction that will hash to '_ oor r n s n'.
+  // This will create a matching block entry for instruction templates ending 
+  // with '<< 16'. An exact match SymbolValidation will then check the arguments
+  // and the parameter for exact equivalence.
+  g.AddParamHash("<<", "s")
+  g.AddParamHash("16", "n")
+  
+  // For memory instructions to denote a memory location, e.g.
+  // stw r0 r1[-4]. 
+  g.AddSymVal("[", exactMatchValidation())
+  g.AddSymVal("]", exactMatchValidation())
+  // For 16bit immediate instructions that address the upper halfword of a
+  // register, e.g. oor r0 0xFEDC << 16.
+  g.AddSymVal("<<", exactMatchValidation())
+  g.AddSymVal("16", exactMatchValidation())
   
   g.AddSymConv("c", conditionConversion())
   g.AddBitConv("c", placementConversion(3, 26))
@@ -327,23 +354,19 @@ func NewCodeGen(ctx AsmContext) *CodeGen {
   g.AddBitVal("@25", branchDistanceValidation())
   g.AddBitConv("@25", placementConversion(25, 0))
   
+  // TODO: Support for optional parameters would halve the number of entries.
+  //       !? instead of _ and !. The instruction will always generate a hash
+  //       with !?. ???
   g.Add("_ add c rd ra rb s u5",     0x00000000)
   g.Add("_ add c rd ra rb",          0x00000000)
   g.Add("_ add c rd ra u12",         0x01000000)
+  g.Add("_ add c rd u16 << 16",      0x21000000)
   g.Add("_ add c rd u16",            0x20000000)
   g.Add("! add c rd ra rb s u5",     0x02000000)
   g.Add("! add c rd ra rb",          0x02000000)
   g.Add("! add c rd ra u12",         0x03000000)
+  g.Add("! add c rd u16 << 16",      0x23000000)
   g.Add("! add c rd u16",            0x22000000)
-
-  g.Add("_ sub c rd ra rb s u5",     0x00000001)
-  g.Add("_ sub c rd ra rb",          0x00000001)
-  g.Add("_ sub c rd ra u12",         0x01000001)
-  g.Add("_ sub c rd u16",            0x20000001)
-  g.Add("! sub c rd ra rb s u5",     0x02000001)
-  g.Add("! sub c rd ra rb",          0x02000001)
-  g.Add("! sub c rd ra u12",         0x03000001)
-  g.Add("! sub c rd u16",            0x22000001)
   
   // "mul": 0x00000002,
   // "div": 0x00000003,
@@ -358,18 +381,37 @@ func NewCodeGen(ctx AsmContext) *CodeGen {
   // //"mlu": 0x0000000a, multiplikation ist immer signed
   // //"dvu": 0x0000000b, division ist immer signed
 
-  g.Add("_ cmp c ra rb s u5",        0x0000000c)
-  g.Add("_ cmp c ra rb",             0x0000000c)
-  g.Add("_ cmp c ra s12",            0x0100000c)
-  g.Add("! cmp c ra rb s u5",        0x0200000c)
-  g.Add("! cmp c ra rb",             0x0200000c)
-  g.Add("! cmp c ra s12",            0x0300000c)
-  // "cmp": 0x0000000c,
+  // cmp, cpu and tst do not write any result to the register file. Register rd
+  // (bits 23-20) must be 0b0000 to guarantee future extensibility.
+  g.Add("_ cmp c ra rb s u5",        0x0000000C)
+  g.Add("_ cmp c ra rb",             0x0000000C)
+  g.Add("_ cmp c ra s12",            0x0100000C)
+  g.Add("! cmp c ra rb s u5",        0x0200000C)
+  g.Add("! cmp c ra rb",             0x0200000C)
+  g.Add("! cmp c ra s12",            0x0300000C)
+
+  g.Add("_ cpu c ra rb s u5",        0x0000000D)
+  g.Add("_ cpu c ra rb",             0x0000000D)
+  g.Add("_ cpu c ra u12",            0x0100000D)
+  g.Add("! cpu c ra rb s u5",        0x0200000D)
+  g.Add("! cpu c ra rb",             0x0200000D)
+  g.Add("! cpu c ra u12",            0x0300000D)  
   
-  // "cpu": 0x0000000d,
-  // "tst": 0x0000000e,
-  // "mov": 0x0000000f,
+  g.Add("_ tst c ra rb s u5",        0x0000000E)
+  g.Add("_ tst c ra rb",             0x0000000E)
+  g.Add("_ tst c ra s12",            0x0100000E)
+  g.Add("! tst c ra rb s u5",        0x0200000E)
+  g.Add("! tst c ra rb",             0x0200000E)
+  g.Add("! tst c ra s12",            0x0300000E)  
   
+  g.Add("_ mov c rd rb s u5",        0x0000000F)
+  g.Add("_ mov c rd rb",             0x0000000F)
+  g.Add("_ mov c rd s12",            0x0100000F)
+  g.Add("! mov c rd rb s u5",        0x0200000F)
+  g.Add("! mov c rd rb",             0x0200000F)
+  g.Add("! mov c rd s12",            0x0300000F)  
+  
+  // These dedicated shift instructions are mere move instructions in dusguise.
   // "sll": 0x0000000f,
   // "srl": 0x0000020f,
   // "sra": 0x0000040f,
@@ -404,10 +446,12 @@ func (g *CodeGen) Generate(ins *ast.Instr) uint32 {
     return 0
   }
   code := blk.Template
-  params := strings.Split(blk.Pattern, " ")
+  // TODO: Split the pattern once and for all in the Add(string, uint32) method.
+  params := strings.Split(blk.Pattern, " ")  
+  // TODO: params length test.
   // Skip set bit (! or _) and command.
   // Encode the condition flag.
-  // TODO: params length test.
+  // TODO: Add condition to the list of arguments in the parser?
   code |= g.generateParam(params[2], ins.Cond)
   for idx, param := range params[3:] {    
     arg := ins.Args[idx].Literal
@@ -417,9 +461,9 @@ func (g *CodeGen) Generate(ins *ast.Instr) uint32 {
 }
 
 func (g *CodeGen) generateParam(param string, arg string) uint32 {
-    g.GetSymVal(param)(g.ctx, arg)
-    bits := g.GetSymConv(param)(g.ctx, arg)
-    g.GetBitVal(param)(g.ctx, bits)
-    bits = g.GetBitConv(param)(g.ctx, bits)
+    g.GetSymVal(param)(g.ctx, param, arg)
+    bits := g.GetSymConv(param)(g.ctx, param, arg)
+    g.GetBitVal(param)(g.ctx, param, bits)
+    bits = g.GetBitConv(param)(g.ctx, param, bits)
     return uint32(bits)
 }
