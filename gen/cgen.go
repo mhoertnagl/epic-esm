@@ -1,6 +1,7 @@
 package gen
 
 import (
+  //"fmt"
   "strings"
 	"strconv"
   
@@ -178,6 +179,24 @@ func conditionConversion() SymbolConversion {
   }
 }
 
+var shiftOps = map[string]int32{
+	"<<":  0,
+	">>":  1,
+	">>>": 2,
+	"<<>": 3,
+	"<>>": 3,
+}
+
+func sopConversion() SymbolConversion {
+  return func (ctx AsmContext, sop string) int32 {
+    	code, ok := shiftOps[sop]
+    	if !ok {
+    		ctx.Error("Unrecognized shift operator [%s].", sop)
+    	}
+      return code
+  }
+}
+
 func numberConversion(min int64, max int64) SymbolConversion {
   return func (ctx AsmContext, num string) int32 {
     i, err := parseNum(num)
@@ -267,6 +286,7 @@ func NewCodeGen(ctx AsmContext) *CodeGen {
   g.AddParamHash("rd",  "r")
   g.AddParamHash("ra",  "r")
   g.AddParamHash("rb",  "r")
+  g.AddParamHash("u5",  "n")
   g.AddParamHash("s12", "n")
   g.AddParamHash("u12", "n")
   g.AddParamHash("s16", "n")
@@ -285,6 +305,12 @@ func NewCodeGen(ctx AsmContext) *CodeGen {
   g.AddSymConv("rb", registerNameConversion())
   g.AddBitConv("rb", placementConversion(4, 12))
   
+  g.AddSymConv("s", sopConversion())
+  g.AddBitConv("s", placementConversion(2, 9))
+  
+  g.AddSymConv("u5", numberConversion(0, 31))
+  g.AddBitConv("u5", placementConversion(2, 4))
+  
   g.AddSymConv("s12", numberConversion(-4096, 4095))
   g.AddBitConv("s12", placementConversion(12, 4))
   
@@ -301,15 +327,71 @@ func NewCodeGen(ctx AsmContext) *CodeGen {
   g.AddBitVal("@25", branchDistanceValidation())
   g.AddBitConv("@25", placementConversion(25, 0))
   
-  g.Add("_ add c rd ra rb",  0x00000000)
-  g.Add("_ add c rd ra u12", 0x01000000)
-  g.Add("_ add c rd u16",    0x20000000)
-  g.Add("! add c rd ra rb",  0x02000000)
-  g.Add("! add c rd ra u12", 0x03000000)
-  g.Add("! add c rd u16",    0x22000000)
+  g.Add("_ add c rd ra rb s u5",     0x00000000)
+  g.Add("_ add c rd ra rb",          0x00000000)
+  g.Add("_ add c rd ra u12",         0x01000000)
+  g.Add("_ add c rd u16",            0x20000000)
+  g.Add("! add c rd ra rb s u5",     0x02000000)
+  g.Add("! add c rd ra rb",          0x02000000)
+  g.Add("! add c rd ra u12",         0x03000000)
+  g.Add("! add c rd u16",            0x22000000)
+
+  g.Add("_ sub c rd ra rb s u5",     0x00000001)
+  g.Add("_ sub c rd ra rb",          0x00000001)
+  g.Add("_ sub c rd ra u12",         0x01000001)
+  g.Add("_ sub c rd u16",            0x20000001)
+  g.Add("! sub c rd ra rb s u5",     0x02000001)
+  g.Add("! sub c rd ra rb",          0x02000001)
+  g.Add("! sub c rd ra u12",         0x03000001)
+  g.Add("! sub c rd u16",            0x22000001)
   
-  g.Add("_ bra c @25",       0xE0000000)
-  g.Add("_ brl c @25",       0xE2000000)
+  // "mul": 0x00000002,
+  // "div": 0x00000003,
+
+  // "and": 0x00000004,
+  // "oor": 0x00000005,
+  // "xor": 0x00000006,
+  // "nor": 0x00000007,
+
+  // "adu": 0x00000008,
+  // "sbu": 0x00000009,
+  // //"mlu": 0x0000000a, multiplikation ist immer signed
+  // //"dvu": 0x0000000b, division ist immer signed
+
+  g.Add("_ cmp c ra rb s u5",        0x0000000c)
+  g.Add("_ cmp c ra rb",             0x0000000c)
+  g.Add("_ cmp c ra s12",            0x0100000c)
+  g.Add("! cmp c ra rb s u5",        0x0200000c)
+  g.Add("! cmp c ra rb",             0x0200000c)
+  g.Add("! cmp c ra s12",            0x0300000c)
+  // "cmp": 0x0000000c,
+  
+  // "cpu": 0x0000000d,
+  // "tst": 0x0000000e,
+  // "mov": 0x0000000f,
+  
+  // "sll": 0x0000000f,
+  // "srl": 0x0000020f,
+  // "sra": 0x0000040f,
+  // "rol": 0x0000060f,
+  // "ror": 0x0000060f,
+  
+  g.Add("_ stw c rd ra [ rb s u5 ]", 0x40000000)
+  g.Add("_ stw c rd ra [ rb ]",      0x40000000)
+  g.Add("_ stw c rd ra [ s12 ]",     0x41000000)
+  g.Add("! stw c rd ra [ rb s u5 ]", 0x42000000)
+  g.Add("! stw c rd ra [ rb ]",      0x42000000)
+  g.Add("! stw c rd ra [ s12 ]",     0x43000000)
+  
+  g.Add("_ ldw c rd ra [ rb s u5 ]", 0x40000001)
+  g.Add("_ ldw c rd ra [ rb ]",      0x40000001)
+  g.Add("_ ldw c rd ra [ s12 ]",     0x41000001)
+  g.Add("! ldw c rd ra [ rb s u5 ]", 0x42000001)
+  g.Add("! ldw c rd ra [ rb ]",      0x42000001)
+  g.Add("! ldw c rd ra [ s12 ]",     0x43000001)
+  
+  g.Add("_ bra c @25",               0xE0000000)
+  g.Add("_ brl c @25",               0xE2000000)
     
   return g
 }
@@ -324,165 +406,20 @@ func (g *CodeGen) Generate(ins *ast.Instr) uint32 {
   code := blk.Template
   params := strings.Split(blk.Pattern, " ")
   // Skip set bit (! or _) and command.
-  for idx, param := range params[2:] {
-    sym := ins.Args[idx - 2].Literal
-    g.GetSymVal(param)(g.ctx, sym)
-    bits := g.GetSymConv(param)(g.ctx, sym)
-    g.GetBitVal(param)(g.ctx, bits)
-    bits = g.GetBitConv(param)(g.ctx, bits)
-    code |= uint32(bits)
+  // Encode the condition flag.
+  // TODO: params length test.
+  code |= g.generateParam(params[2], ins.Cond)
+  for idx, param := range params[3:] {    
+    arg := ins.Args[idx].Literal
+    code |= g.generateParam(param, arg)
   }
   return code
 }
 
-// func (g *CodeGen) Emit() uint32 {
-//   return g.code
-// }
-// 
-// func (g *CodeGen) PlaceDataCmd(cmd string) {
-// 	code, ok := dataInstructions[cmd]
-// 	if !ok {
-// 		g.ctx.Error("Unrecognized instruction [%s].", cmd)
-// 	}
-// 	g.code |= code
-// }
-// 
-// func (g *CodeGen) PlaceMemCmd(cmd string) {
-// 	code, ok := memInstructions[cmd]
-// 	if !ok {
-// 		g.ctx.Error("Unrecognized instruction [%s].", cmd)
-// 	}
-// 	g.code |= code
-// }
-// 
-// func (g *CodeGen) PlaceBranchCmd(cmd string) {
-// 	code, ok := branchInstructions[cmd]
-// 	if !ok {
-// 		g.ctx.Error("Unrecognized instruction [%s].", cmd)
-// 	}
-// 	g.code |= code
-// }
-// 
-// func (g *CodeGen) PlaceCnd(cnd string) {
-// 	code, ok := conditions[cnd]
-// 	if !ok {
-// 		g.ctx.Error("Unrecognized condition flag [%s].", cnd)
-// 	}
-// 	g.code |= g.place(int64(code), 26, 3)
-// }
-// 
-// func (g *CodeGen) PlaceSetBit(set bool) {  
-// 	if set {
-// 		g.code |= g.place(1, 25, 1)
-// 	}
-// }
-// 
-// func (g *CodeGen) PlaceI16Bit() {
-// 	g.code |= g.place(1, 29, 1)
-// }
-// 
-// func (g *CodeGen) PlaceI12Bit() {
-// 	g.code |= g.place(1, 24, 1)
-// }
-// 
-// func (g *CodeGen) PlaceRd(rdName string) {
-// 	rd, ok := registers[rdName]
-// 	if !ok {
-// 		g.ctx.Error("unrecognized destination register [%s]", rdName)
-// 	}
-// 	g.code |= g.place(int64(rd), 20, 4)
-// }
-// 
-// func (g *CodeGen) PlaceRa(raName string) {
-// 	ra, ok := registers[raName]
-// 	if !ok {
-// 		g.ctx.Error("unrecognized source A register [%s]", raName)
-// 	}
-// 	g.code |= g.place(int64(ra), 16, 4)
-// }
-// 
-// func (g *CodeGen) PlaceRb(rbName string) {
-// 	rb, ok := registers[rbName]
-// 	if !ok {
-// 		g.ctx.Error("unrecognized source B register [%s]", rbName)
-// 	}
-// 	g.code |= g.place(int64(rb), 12, 4)
-// }
-
-// func (g *CodeGen) PlaceNumShift(sh *NumShift) uint32 {
-// 	if sh == nil {
-// 		return 0
-// 	}
-// 	code := g.placeShiftOp(sh.cmd)
-// 	// Turns a Rotate Right (<>>) into a Rotate Left (<<>). The following
-// 	// identity holds for all cases: x <>> n <--> x <<> (32 - n)
-// 	if sh.cmd == "<>>" || sh.cmd == "ror" {
-// 		shft := g.convertUnsignedNum(sh.num, 0, 5)
-// 		code |= g.place(int64(32-shft), 4, 5)
-// 	} else {
-// 		code |= g.convertUnsignedNum(sh.num, 4, 5)
-// 	}
-// 	return code
-// }
-// 
-// func (g *CodeGen) placeShiftOp(cmd string) uint32 {
-// 	sop, ok := shiftOps[cmd]
-// 	if !ok {
-// 		g.Error("unrecognized shift operator [%s]", cmd)
-// 	}
-// 	return g.place(int64(sop), 2, 9)
-// }
-// 
-// func (g *CodeGen) PlaceBranchAddress(label string) {
-// 	sym, ok := g.ctx.FindSymbol(label)
-// 	if !ok {
-// 		g.ctx.Error("Reference to undefined symbol [%s].", label)
-// 	}
-// 	g.code |= g.convertAddr(sym.addr)
-// }
-// 
-// func (g *CodeGen) convertSignedNum(n string, s uint8, p uint8) uint32 {
-// 	return g.convertNum(n, s, p, -(1 << p), 1 << p)
-// }
-// 
-// func (g *CodeGen) convertUnsignedNum(n string, s uint8, p uint8) uint32 {
-// 	return g.convertNum(n, s, p, 0, 1 << p)
-// }
-// 
-// func (g *CodeGen) convertNum(n string, s uint8, p uint8, min int64, max int64) uint32 {
-// 	i, err := g.parseNum(n)
-// 
-// 	if err != nil {
-// 		g.ctx.Error("Number [%s] too long.", n)
-// 	}
-// 	if i < min {
-// 		g.ctx.Error("Unexpected number [%s]. Number must be greater than [%d].", n, min)
-// 	}
-// 	if i >= max {
-// 		g.ctx.Error("Unexpected number [%s]. Number must be less than [%d]", n, max)
-// 	}
-// 	return g.place(i, s, p)
-// }
-// 
-// func (g *CodeGen) convertAddr(addr uint32) uint32 {
-// 	bra := int64(addr - g.ctx.Ip())
-// 	if bra < BRA_MIN || bra >= BRA_MAX {
-// 		g.ctx.Error("Branch distance [%d] too large.", bra)
-// 	}
-// 	return g.place(bra, 0, 25)
-// }
-// 
-// func (g *CodeGen) parseNum(n string) (int64, error) {
-// 	// strings.HasPrefix
-// 	if len(n) > 2 && n[0:2] == "0b" {
-// 		return strconv.ParseInt(n[2:], 2, 32)
-// 	}
-// 	if len(n) > 2 && n[0:2] == "0x" {
-// 		return strconv.ParseInt(n[2:], 16, 32)
-// 	}
-// 	return strconv.ParseInt(n, 10, 32)
-// }
-// 
-// func (g *CodeGen) place(i int64, s uint8, p uint8) uint32 {
-// 	return uint32((i & ((1 << p) - 1)) << s)
-// }
+func (g *CodeGen) generateParam(param string, arg string) uint32 {
+    g.GetSymVal(param)(g.ctx, arg)
+    bits := g.GetSymConv(param)(g.ctx, arg)
+    g.GetBitVal(param)(g.ctx, bits)
+    bits = g.GetBitConv(param)(g.ctx, bits)
+    return uint32(bits)
+}

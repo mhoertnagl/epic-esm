@@ -52,40 +52,10 @@ func (n *Instr) ArgsString() string {
 
   params = append(params, n.Cmd)
 
-  // TODO: TokenType kann den Kürzeln entsprechen.
+  params = append(params, "c")
+
   for _, tok := range n.Args {
-    switch tok.Typ {
-    case token.REG:
-      params = append(params, "r")
-      break
-    case token.NUM:
-      params = append(params, "n")
-      break
-    case token.LBL:
-      params = append(params, "@")
-      break
-    case token.SLL:
-      params = append(params, "s")
-      break
-    case token.SRL:
-      params = append(params, "s")
-      break
-    case token.SRA:
-      params = append(params, "s")
-      break
-    case token.ROL:
-      params = append(params, "s")
-      break
-    case token.ROR:
-      params = append(params, "s")
-      break
-    case token.LBRK:
-      params = append(params, "[")
-      break
-    case token.RBRK:
-      params = append(params, "]")
-      break
-    }    
+    params = append(params, string(tok.Typ))   
   }
 
 	return strings.Join(params, " ")
