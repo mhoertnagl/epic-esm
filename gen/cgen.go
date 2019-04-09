@@ -306,7 +306,7 @@ func NewCodeGen(ctx AsmContext) *CodeGen {
   // register, e.g. oor r0 0xFEDC << 16.
   // The parser will eject an instruction that will hash to '_ oor r n s n'.
   // This will create a matching block entry for instruction templates ending 
-  // with '<< 16'. An exact match SymbolValidation will then check the arguments
+  // with '<< 16'. An exact match SymbolValidation will then check the argument
   // and the parameter for exact equivalence.
   g.AddParamHash("<<", "s")
   g.AddParamHash("16", "n")
@@ -360,26 +360,71 @@ func NewCodeGen(ctx AsmContext) *CodeGen {
   g.Add("_ add c rd ra rb s u5",     0x00000000)
   g.Add("_ add c rd ra rb",          0x00000000)
   g.Add("_ add c rd ra u12",         0x01000000)
-  g.Add("_ add c rd u16 << 16",      0x21000000)
-  g.Add("_ add c rd u16",            0x20000000)
   g.Add("! add c rd ra rb s u5",     0x02000000)
   g.Add("! add c rd ra rb",          0x02000000)
   g.Add("! add c rd ra u12",         0x03000000)
-  g.Add("! add c rd u16 << 16",      0x23000000)
-  g.Add("! add c rd u16",            0x22000000)
-  
-  // "mul": 0x00000002,
-  // "div": 0x00000003,
 
-  // "and": 0x00000004,
-  // "oor": 0x00000005,
-  // "xor": 0x00000006,
-  // "nor": 0x00000007,
+  g.Add("_ sub c rd ra rb s u5",     0x00000001)
+  g.Add("_ sub c rd ra rb",          0x00000001)
+  g.Add("_ sub c rd ra u12",         0x01000001)
+  g.Add("! sub c rd ra rb s u5",     0x02000001)
+  g.Add("! sub c rd ra rb",          0x02000001)
+  g.Add("! sub c rd ra u12",         0x03000001)  
+  
+  g.Add("_ mul c rd ra rb s u5",     0x00000002)
+  g.Add("_ mul c rd ra rb",          0x00000002)
+  g.Add("_ mul c rd ra s12",         0x01000002)
+  g.Add("! mul c rd ra rb s u5",     0x02000002)
+  g.Add("! mul c rd ra rb",          0x02000002)
+  g.Add("! mul c rd ra s12",         0x03000002)
+  
+  g.Add("_ div c rd ra rb s u5",     0x00000003)
+  g.Add("_ div c rd ra rb",          0x00000003)
+  g.Add("_ div c rd ra s12",         0x01000003)
+  g.Add("! div c rd ra rb s u5",     0x02000003)
+  g.Add("! div c rd ra rb",          0x02000003)
+  g.Add("! div c rd ra s12",         0x03000003)
+  
+  
+  g.Add("_ and c rd ra rb s u5",     0x00000004)
+  g.Add("_ and c rd ra rb",          0x00000004)
+  g.Add("_ and c rd ra u12",         0x01000004)
+  g.Add("! and c rd ra rb s u5",     0x02000004)
+  g.Add("! and c rd ra rb",          0x02000004)
+  g.Add("! and c rd ra u12",         0x03000004)  
+  
+  g.Add("_ oor c rd ra rb s u5",     0x00000005)
+  g.Add("_ oor c rd ra rb",          0x00000005)
+  g.Add("_ oor c rd ra u12",         0x01000005)
+  g.Add("! oor c rd ra rb s u5",     0x02000005)
+  g.Add("! oor c rd ra rb",          0x02000005)
+  g.Add("! oor c rd ra u12",         0x03000005)
+  
+  g.Add("_ xor c rd ra rb s u5",     0x00000006)
+  g.Add("_ xor c rd ra rb",          0x00000006)
+  g.Add("_ xor c rd ra u12",         0x01000006)
+  g.Add("! xor c rd ra rb s u5",     0x02000006)
+  g.Add("! xor c rd ra rb",          0x02000006)
+  g.Add("! xor c rd ra u12",         0x03000006)
+  
+  g.Add("_ nor c rd ra rb s u5",     0x00000007)
+  g.Add("_ nor c rd ra rb",          0x00000007)
+  g.Add("_ nor c rd ra u12",         0x01000007)
+  g.Add("! nor c rd ra rb s u5",     0x02000007)
+  g.Add("! nor c rd ra rb",          0x02000007)
+  g.Add("! nor c rd ra u12",         0x03000007)
+  
+  // clr rd    <-> xor   rd rd     // rd <- rd ^ rd (<-> rd = 0)
+  // inv rd    <-> nor   rd rd     // rd <- ~rd
+  // neg rd ra <-> mul   rd ra -1  // rd <- -ra
+  // neg rd    <-> neg   rd rd
+
 
   // "adu": 0x00000008,
   // "sbu": 0x00000009,
   // //"mlu": 0x0000000a, multiplikation ist immer signed
   // //"dvu": 0x0000000b, division ist immer signed
+
 
   // cmp, cpu and tst do not write any result to the register file. Register rd
   // (bits 23-20) must be 0b0000 to guarantee future extensibility.
@@ -399,24 +444,42 @@ func NewCodeGen(ctx AsmContext) *CodeGen {
   
   g.Add("_ tst c ra rb s u5",        0x0000000E)
   g.Add("_ tst c ra rb",             0x0000000E)
-  g.Add("_ tst c ra s12",            0x0100000E)
+  g.Add("_ tst c ra u12",            0x0100000E)
   g.Add("! tst c ra rb s u5",        0x0200000E)
   g.Add("! tst c ra rb",             0x0200000E)
-  g.Add("! tst c ra s12",            0x0300000E)  
-  
+  g.Add("! tst c ra u12",            0x0300000E)  
+  // TODO: Unsigned or signed?
   g.Add("_ mov c rd rb s u5",        0x0000000F)
   g.Add("_ mov c rd rb",             0x0000000F)
-  g.Add("_ mov c rd s12",            0x0100000F)
+  g.Add("_ mov c rd u12",            0x0100000F)
   g.Add("! mov c rd rb s u5",        0x0200000F)
   g.Add("! mov c rd rb",             0x0200000F)
-  g.Add("! mov c rd s12",            0x0300000F)  
+  g.Add("! mov c rd u12",            0x0300000F)  
   
-  // These dedicated shift instructions are mere move instructions in dusguise.
+  // nop       <-> movnv r0 r0  0 
+  
+  // ret ra <-> mov ip ra
+  // ret <-> ret rp
+  
+  // These dedicated shift instructions are mere move instructions in disguise.
   // "sll": 0x0000000f,
   // "srl": 0x0000020f,
   // "sra": 0x0000040f,
   // "rol": 0x0000060f,
   // "ror": 0x0000060f,
+  
+  
+  g.Add("_ add c rd u16 << 16",      0x21000000)
+  g.Add("_ add c rd u16",            0x20000000)
+  g.Add("! add c rd u16 << 16",      0x23000000)
+  g.Add("! add c rd u16",            0x22000000)
+  // ...
+  // TODO: Unsigned or signed?
+  g.Add("_ ldc c rd u16 << 16",      0x2100000F)
+  g.Add("_ ldc c rd u16",            0x2000000F)
+  g.Add("! ldc c rd u16 << 16",      0x2300000F)
+  g.Add("! ldc c rd u16",            0x2200000F)
+  
   
   g.Add("_ stw c rd ra [ rb s u5 ]", 0x40000000)
   g.Add("_ stw c rd ra [ rb ]",      0x40000000)
@@ -431,6 +494,7 @@ func NewCodeGen(ctx AsmContext) *CodeGen {
   g.Add("! ldw c rd ra [ rb s u5 ]", 0x42000001)
   g.Add("! ldw c rd ra [ rb ]",      0x42000001)
   g.Add("! ldw c rd ra [ s12 ]",     0x43000001)
+  
   
   g.Add("_ bra c @25",               0xE0000000)
   g.Add("_ brl c @25",               0xE2000000)

@@ -1,6 +1,7 @@
 package gen
 
 import (
+  "fmt"
 	"testing"
   
   "github.com/mhoertnagl/epic-esm/token"
@@ -23,6 +24,52 @@ import (
 // 1101 D
 // 1110 E
 // 1111 F
+
+func TestI16_0(t *testing.T) {
+  ins := &ast.Instr{
+    Set: false,
+    Cmd: "add",
+    Cond: "nv",
+    Args: []token.Token{
+      {Typ: token.REG, Literal: "rp"},
+      {Typ:token.NUM, Literal: fmt.Sprintf("%d", 0xFFFF)},
+  	},
+  }
+  // 0010 0000 1110 1111  1111 1111 1111 0000
+	test(t, ins, 0x20EFFFF0)
+}
+
+func TestI16_1(t *testing.T) {
+  ins := &ast.Instr{
+    Set: false,
+    Cmd: "add",
+    Cond: "nv",
+    Args: []token.Token{
+      {Typ: token.REG, Literal: "rp"},
+      {Typ:token.NUM, Literal: fmt.Sprintf("%d", 0xFFFF)},
+      {Typ: token.SOP, Literal: "<<"},
+      {Typ: token.NUM, Literal: "16"},
+  	},
+  }
+  // 0010 0001 1110 1111  1111 1111 1111 0000
+	test(t, ins, 0x21EFFFF0)
+}
+
+func TestI16_2(t *testing.T) {
+  ins := &ast.Instr{
+    Set: true,
+    Cmd: "add",
+    Cond: "nv",
+    Args: []token.Token{
+      {Typ: token.REG, Literal: "rp"},
+      {Typ:token.NUM, Literal: fmt.Sprintf("%d", 0xFFFF)},
+      {Typ: token.SOP, Literal: "<<"},
+      {Typ: token.NUM, Literal: "16"},
+  	},
+  }
+  // 0010 0011 1110 1111  1111 1111 1111 0000
+	test(t, ins, 0x23EFFFF0)
+}
 
 func TestInstruction0(t *testing.T) {
   ins := &ast.Instr{

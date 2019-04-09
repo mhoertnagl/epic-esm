@@ -34,6 +34,7 @@ func (n *Empty) String() string {
   return "EMPTY"
 }
 
+// TODO: []token.Token or []*token.Token?
 type Instr struct {
 	Set  bool
   Cmd  string

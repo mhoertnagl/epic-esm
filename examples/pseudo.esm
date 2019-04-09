@@ -1,4 +1,4 @@
-// -----------------------------------------------------------------------------
+/* // -----------------------------------------------------------------------------
 // 
 // -----------------------------------------------------------------------------
 
@@ -65,11 +65,11 @@ cmd:t[bop] cond:t[cond]=al addr:a25
 'swp' cond:t[cond] ra:t[reg] rb:t[reg] 
   : {'xor'cond ra rb}
   | {'xor'cond rb ra}
-  | {'xor'cond ra rb}
+  | {'xor'cond ra rb} */
 
 
   
-nop       <-> movnv r0 r0  0  // Nothingness.
+/* nop       <-> movnv r0 r0  0  // Nothingness.
 sll rd ra u5 <-> mov rd ra  << u5  // rd <- ra
 srl rd ra u5 <-> mov rd ra  >> u5
 sra rd ra u5 <-> mov rd ra >>> u5
@@ -79,7 +79,7 @@ ror rd ra u5 <-> mov rd ra <<> (32 - u5)
 clr rd    <-> xor   rd rd     // rd <- rd ^ rd (<-> rd = 0)
 inv rd    <-> nor   rd rd     // rd <- ~rd
 neg rd ra <-> mul   rd ra -1  // rd <- -ra
-neg rd    <-> neg   rd rd
+neg rd    <-> neg   rd rd */
 // neg rd    <-> inv   rd        // rd <- -rd
 //               add   rd 1
 swp ra rb <-> xor   ra rb     // ra <- ra ^ rb
@@ -106,16 +106,16 @@ pop rxs <->
 //cmp ra s16 <-> ! subnv r0 ra s16
 
 // Loading 32 bit constants.
-ldc rd s32 <-> 
+/* ldc rd s32 <-> 
   if s32[31:16] != 0 {
     ldc rd s32[31:16] << 16
   } 
   if s32[15:0] != 0 {
     ldc rd s32[15:0]
-  }
+  } */
 
 // Constant loading with lda.
-lda rd @lbl <-> ldc rd sym[@lbl].addr
+/* lda rd @lbl <-> ldc rd sym[@lbl].addr */
 
 // Sign of a number.
 //sgn rd ra <-> sra rd ra 31
@@ -126,22 +126,22 @@ lda rd @lbl <-> ldc rd sym[@lbl].addr
 
 // tst ra rb <-> ! andnv ra rb ?
 
-ret ra <-> mov ip ra
-ret <-> ret rp
+/* ret ra <-> mov ip ra
+ret <-> ret rp */
 
 // Ohne Branch-Delay-Slot
-rtn <-> 
+/* rtn <-> 
   add sp 1
-  ldw ip sp[-1]
+  ldw ip sp[-1] */
 
 // Mit Branch-Delay-Slot  
-rtn <->
+/* rtn <->
   ldw ip sp[0]
-  add sp 1
+  add sp 1 */
 
 
 // Meta language
-def r0  = bits 00000
+/* def r0  = bits 00000
 ...
 def r15 = bits 11111
 
@@ -174,4 +174,4 @@ ins [!] *add [cond] rd s16 [(<< 16)] = pat 001 cond ! (<< 16) rd s16 0000
 
 ins [!] *stw [cond] rd ra '[' rb ']' = ...
 
-ins     nop                        = ins sll nv r0 r0 0 
+ins     nop                        = ins sll nv r0 r0 0  */
