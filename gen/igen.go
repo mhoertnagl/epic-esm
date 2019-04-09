@@ -75,7 +75,7 @@ func (g *InstrGen) ldc(set bool, cond string, rd string, n uint32) []uint32 {
   
   if n == 0 {
     code := g.genOne(set, "clr", cond, reg(rd))
-    // code := g.genOne(set, "xor", cond, reg(rd), reg(rd))
+    // code := g.genOne(set, "xor", cond, reg(rd), reg(rd), reg(rd))
     codes = append(codes, code)
     return codes
   }

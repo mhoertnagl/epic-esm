@@ -302,7 +302,7 @@ func NewCodeGen(ctx AsmContext) *CodeGen {
   g.AddParamHash("s16", "n")
   g.AddParamHash("u16", "n")
   g.AddParamHash("@25", "@")
-  // For 16bit immediate instructions that address the upper halfword of a
+  // For 16-bit immediate instructions that address the upper halfword of a
   // register, e.g. oor r0 0xFEDC << 16.
   // The parser will eject an instruction that will hash to '_ oor r n s n'.
   // This will create a matching block entry for instruction templates ending 
@@ -315,7 +315,7 @@ func NewCodeGen(ctx AsmContext) *CodeGen {
   // stw r0 r1[-4]. 
   g.AddSymVal("[", exactMatchValidation())
   g.AddSymVal("]", exactMatchValidation())
-  // For 16bit immediate instructions that address the upper halfword of a
+  // For 16-bit immediate instructions that address the upper halfword of a
   // register, e.g. oor r0 0xFEDC << 16.
   g.AddSymVal("<<", exactMatchValidation())
   g.AddSymVal("16", exactMatchValidation())
@@ -354,9 +354,7 @@ func NewCodeGen(ctx AsmContext) *CodeGen {
   g.AddBitVal("@25", branchDistanceValidation())
   g.AddBitConv("@25", placementConversion(25, 0))
   
-  // TODO: Support for optional parameters would halve the number of entries.
-  //       !? instead of _ and !. The instruction will always generate a hash
-  //       with !?. ???
+  
   g.Add("_ add c rd ra rb s u5",     0x00000000)
   g.Add("_ add c rd ra rb",          0x00000000)
   g.Add("_ add c rd ra u12",         0x01000000)
@@ -414,10 +412,10 @@ func NewCodeGen(ctx AsmContext) *CodeGen {
   g.Add("! nor c rd ra rb",          0x02000007)
   g.Add("! nor c rd ra u12",         0x03000007)
   
-  // clr rd    <-> xor   rd rd     // rd <- rd ^ rd (<-> rd = 0)
-  // inv rd    <-> nor   rd rd     // rd <- ~rd
-  // neg rd ra <-> mul   rd ra -1  // rd <- -ra
-  // neg rd    <-> neg   rd rd
+  // clr rd    <-> xor   rd rd rd    // rd <- rd ^ rd (<-> rd = 0)
+  // inv rd    <-> nor   rd rd rd    // rd <- ~rd
+  // neg rd ra <-> mul   rd ra -1    // rd <- -ra
+  // neg rd    <-> mul   rd rd -1
 
 
   // "adu": 0x00000008,
