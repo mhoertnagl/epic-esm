@@ -212,7 +212,7 @@ func numberConversion(min int64, max int64) SymbolConversion {
     i, err := parseNum(num)
 
   	if err != nil {
-  		ctx.Error("Number [%s] too long.", num)
+  		ctx.Error("Value [%s] is not a number.", num)
   	}
   	if i < min {
   		ctx.Error("Unexpected number [%s]. Number must be greater than [%d].", num, min)
@@ -224,11 +224,28 @@ func numberConversion(min int64, max int64) SymbolConversion {
   }
 }
 
+func invNumberConversion(max int64) SymbolConversion {
+  return func (ctx AsmContext, param string, num string) int32 {
+    i, err := parseNum(num)
+
+  	if err != nil {
+  		ctx.Error("Value [%s] is not a number.", num)
+  	}
+  	if i < 0 {
+  		ctx.Error("Unexpected number [%s]. Number must be greater than [%d].", num, 0)
+  	}
+  	if i >= max {
+  		ctx.Error("Unexpected number [%s]. Number must be less than [%d].", num, max)
+  	}
+    return int32(max - i)
+  }
+}
+
 func parseNum(n string) (int64, error) {
 	// strings.HasPrefix
-	if len(n) > 2 && n[0:2] == "0b" {
-		return strconv.ParseInt(n[2:], 2, 32)
-	}
+	// if len(n) > 2 && n[0:2] == "0b" {
+	// 	return strconv.ParseInt(n[2:], 2, 32)
+	// }
 	if len(n) > 2 && n[0:2] == "0x" {
 		return strconv.ParseInt(n[2:], 16, 32)
 	}
@@ -247,13 +264,14 @@ func branchLabelConversion() SymbolConversion {
 }
 
 const (
-	BRA_MIN = -(1 << 24)
-	BRA_MAX = 1 << 24
+  braLen = 25 // bits
+	braMin = -(1 << (braLen - 1))
+	braMax = 1 << (braLen - 1)
 )
 
 func branchDistanceValidation() BitValidation {
   return func (ctx AsmContext, param string, bra int32) bool {
-    if bra < BRA_MIN || bra >= BRA_MAX {
+    if bra < braMin || bra >= braMax {
     	ctx.Error("Branch distance [%d] too large.", bra)
       return false
     }
@@ -302,6 +320,7 @@ func NewCodeGen(ctx AsmContext) *CodeGen {
   g.AddParamHash("s16", "n")
   g.AddParamHash("u16", "n")
   g.AddParamHash("@25", "@")
+  
   // For 16-bit immediate instructions that address the upper halfword of a
   // register, e.g. oor r0 0xFEDC << 16.
   // The parser will eject an instruction that will hash to '_ oor r n s n'.
@@ -315,6 +334,7 @@ func NewCodeGen(ctx AsmContext) *CodeGen {
   // stw r0 r1[-4]. 
   g.AddSymVal("[", exactMatchValidation())
   g.AddSymVal("]", exactMatchValidation())
+  
   // For 16-bit immediate instructions that address the upper halfword of a
   // register, e.g. oor r0 0xFEDC << 16.
   g.AddSymVal("<<", exactMatchValidation())
@@ -335,19 +355,23 @@ func NewCodeGen(ctx AsmContext) *CodeGen {
   g.AddSymConv("s", sopConversion())
   g.AddBitConv("s", placementConversion(2, 9))
   
-  g.AddSymConv("u5", numberConversion(0, 31))
-  g.AddBitConv("u5", placementConversion(2, 4))
+  g.AddSymConv("u5", numberConversion(0, 32))
+  g.AddBitConv("u5", placementConversion(5, 4))
   
-  g.AddSymConv("s12", numberConversion(-4096, 4095))
+  // Parameter i5 will subtract the 5-bit number from the least upper bound 32. 
+  g.AddSymConv("i5", invNumberConversion(32))
+  g.AddBitConv("i5", placementConversion(5, 4))
+  
+  g.AddSymConv("s12", numberConversion(-4096, 4096))
   g.AddBitConv("s12", placementConversion(12, 4))
   
   g.AddSymConv("u12", numberConversion(0, 8192))
   g.AddBitConv("u12", placementConversion(12, 4))
   
-  g.AddSymConv("s16", numberConversion(-32768, 32767))
+  g.AddSymConv("s16", numberConversion(-32768, 32768))
   g.AddBitConv("s16", placementConversion(16, 4))
   
-  g.AddSymConv("u16", numberConversion(0, 65535))
+  g.AddSymConv("u16", numberConversion(0, 65536))
   g.AddBitConv("u16", placementConversion(16, 4))
   
   g.AddSymConv("@25", branchLabelConversion())
@@ -412,12 +436,7 @@ func NewCodeGen(ctx AsmContext) *CodeGen {
   g.Add("! nor c rd ra rb",          0x02000007)
   g.Add("! nor c rd ra u12",         0x03000007)
   
-  // clr rd    <-> xor   rd rd rd    // rd <- rd ^ rd (<-> rd = 0)
-  // inv rd    <-> nor   rd rd rd    // rd <- ~rd
-  // neg rd ra <-> mul   rd ra -1    // rd <- -ra
-  // neg rd    <-> mul   rd rd -1
-
-
+  
   // "adu": 0x00000008,
   // "sbu": 0x00000009,
   // //"mlu": 0x0000000a, multiplikation ist immer signed
@@ -454,17 +473,24 @@ func NewCodeGen(ctx AsmContext) *CodeGen {
   g.Add("! mov c rd rb",             0x0200000F)
   g.Add("! mov c rd u12",            0x0300000F)  
   
-  // nop       <-> movnv r0 r0  0 
-  
-  // ret ra <-> mov ip ra
-  // ret <-> ret rp
   
   // These dedicated shift instructions are mere move instructions in disguise.
-  // "sll": 0x0000000f,
-  // "srl": 0x0000020f,
-  // "sra": 0x0000040f,
-  // "rol": 0x0000060f,
-  // "ror": 0x0000060f,
+  g.Add("_ sll c rd rb u5",          0x0000000F)
+  g.Add("! sll c rd rb u5",          0x0200000F)
+  
+  g.Add("_ srl c rd rb u5",          0x0000020F)
+  g.Add("! srl c rd rb u5",          0x0200020F)
+  
+  g.Add("_ sra c rd rb u5",          0x0000040F)
+  g.Add("! sra c rd rb u5",          0x0200040F)
+  
+  g.Add("_ rol c rd rb u5",          0x0000060F)
+  g.Add("! rol c rd rb u5",          0x0200060F)
+
+  // Rotate right is a pseudo instruction defined as:
+  //   ror rd rb x := rol rd rb (32 - x)
+  g.Add("_ ror c rd rb i5",          0x0000060F)
+  g.Add("! ror c rd rb i5",          0x0200060F)
   
   
   g.Add("_ add c rd u16 << 16",      0x21000000)
@@ -504,13 +530,14 @@ func (g *CodeGen) Generate(ins *ast.Instr) uint32 {
   as := ins.ArgsString()
   blk, ok := g.blocks[as]
   if !ok {
-    g.ctx.Error("Unsupported arguments [%s] for command [%s].", as, ins.Cmd)
+    g.ctx.Error("Unsupported instruction [%s].", ins)
+    //g.ctx.Error("Unsupported arguments [%s] for command [%s].", as, ins.Cmd)
     return 0
   }
   code := blk.Template
   // TODO: Split the pattern once and for all in the Add(string, uint32) method.
   params := strings.Split(blk.Pattern, " ")  
-  // TODO: params length test.
+  // TODO: params length test. Actually this cannot happen but one never knows.
   // Skip set bit (! or _) and command.
   // Encode the condition flag.
   // TODO: Add condition to the list of arguments in the parser?

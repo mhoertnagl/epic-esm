@@ -71,6 +71,21 @@ func TestI16_2(t *testing.T) {
 	test(t, ins, 0x23EFFFF0)
 }
 
+func TestNop(t *testing.T) {
+  ins := &ast.Instr{
+    Set: false,
+    Cmd: "add",
+    Cond: "nv",
+    Args: []token.Token{
+      {Typ: token.REG, Literal: "r0"},
+      {Typ: token.REG, Literal: "r0"},
+      {Typ: token.REG, Literal: "r0"},
+  	},
+  }
+  // 0000 0000 0000 0000  0000 0000 0000 0000
+	test(t, ins, 0x00000000)
+}
+
 func TestInstruction0(t *testing.T) {
   ins := &ast.Instr{
     Set: false,

@@ -14,6 +14,8 @@ type InstrGen struct {
   cgen *CodeGen
 }
 
+// TODO: Builder pattern?
+
 func NewInstrGen(ctx  AsmContext) *InstrGen {
   g := &InstrGen{
     ctx: ctx,
@@ -23,7 +25,7 @@ func NewInstrGen(ctx  AsmContext) *InstrGen {
 }
 
 func (g *InstrGen) Generate(ins *ast.Instr) []uint32 {
-  
+  return []uint32{}
 }
 
 func (g *InstrGen) gen(set bool, cmd string, cond string, args ...token.Token) []uint32 {
@@ -44,6 +46,35 @@ func (g *InstrGen) genOne(set bool, cmd string, cond string, args ...token.Token
     Args: args,
   }
   return g.cgen.Generate(ins)
+}
+
+func (g *InstrGen) nop() uint32 {
+  // The nop instruction (addnv r0 r0 r0) is all zero. 
+  return 0
+}
+
+func (g *InstrGen) clr(set bool, cond string, rd string) uint32 {
+  return g.genOne(set, "xor", cond, reg(rd), reg(rd), reg(rd))
+}
+
+func (g *InstrGen) inv(set bool, cond string, rd string) uint32 {
+  return g.genOne(set, "nor", cond, reg(rd), reg(rd), reg(rd))
+}
+
+func (g *InstrGen) neg(set bool, cond string, rd string) uint32 {
+  return g.neg2(set, cond, rd, rd)
+}
+
+func (g *InstrGen) neg2(set bool, cond string, rd string, ra string) uint32 {
+  return g.genOne(set, "mul", cond, reg(rd), reg(ra), numi(-1))
+}
+
+func (g *InstrGen) ret(set bool, cond string) uint32 {
+  return g.ret1(set, cond, "rp")
+}
+
+func (g *InstrGen) ret1(set bool, cond string, ra string) uint32 {
+  return g.genOne(set, "mov", cond, reg("ip"), reg(ra))
 }
 
 func (g *InstrGen) ldaGenerator(ins *ast.Instr) []uint32 {
@@ -74,15 +105,16 @@ func (g *InstrGen) ldc(set bool, cond string, rd string, n uint32) []uint32 {
   codes := []uint32{}
   
   if n == 0 {
-    code := g.genOne(set, "clr", cond, reg(rd))
+    // code := g.genOne(set, "clr", cond, reg(rd))
     // code := g.genOne(set, "xor", cond, reg(rd), reg(rd), reg(rd))
+    code := g.clr(set, cond, rd)
     codes = append(codes, code)
     return codes
   }
   
-  if n > 0 {
-    return codes
-  }
+  // if n > 0 {
+  //   return codes
+  // }
   
   nu := n >> 16
   if (nu > 0) {
