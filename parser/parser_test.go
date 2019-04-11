@@ -16,11 +16,9 @@ func TestDataErrors(t *testing.T) {
 }
 
 func TestData3Reg(t *testing.T) {
-	test(t, "add r0 r1 r2", "add al r0 r1 r2 << 0")
-  test(t, "! subeq r0 r1 r2", "! sub eq r0 r1 r2 << 0")
-  
-  test(t, "mullt r0 r2", "mul lt r0 r0 r2 << 0")
-  
+	test(t, "add r0 r1 r2", "add al r0 r1 r2")
+  test(t, "! subeq r0 r1 r2", "! sub eq r0 r1 r2")  
+  test(t, "mullt r0 r0 r2", "mul lt r0 r0 r2")
   test(t, "add r0 r2 r2 >> 2", "add al r0 r2 r2 >> 2")
 }
 

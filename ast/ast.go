@@ -71,10 +71,8 @@ func (n *Instr) String() string {
 
   params = append(params, n.Cmd)
 
-  if n.Cond != "al" {
-    params = append(params, n.Cond)
-  }
-
+  params = append(params, n.Cond)
+    
   for _, tok := range n.Args {
     params = append(params, tok.Literal)
   }

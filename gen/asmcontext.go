@@ -3,30 +3,28 @@ package gen
 import(
   "fmt"
   
-  "github.com/mhoertnagl/epic-esm/ast"
+  //"github.com/mhoertnagl/epic-esm/ast"
 )
 
 type AsmContext interface {
   
   Ip() uint32
   
-  IncrementIp()
+  ResetIp()
+  
+  IncrementIp(n int)
   
   IncrementLineNo()
   
-  AddSymbol(n ast.Node)
+  AddSymbol(name string)
   
   FindSymbol(name string) (Symbol, bool)
   
   Error(format string, a ...interface{})
   
+  HasErrors() bool
+  
   Errors() []string
-  // 
-  // Generate(ins *ast.Instr)
-  // 
-  // NewCodeGen() *CodeGen
-  // 
-  // Emit(g *CodeGen)
 }
 
 type asmContext struct {
@@ -37,10 +35,10 @@ type asmContext struct {
   errors   []string
 }
 
-func NewAsmContext(filename string, st SymbolTable) AsmContext {
+func NewAsmContext(filename string) AsmContext {
   return &asmContext{
     filename: filename,
-    st: st,
+    st: NewSymbolTable(),
     ip: 0,
     lineNo: 1,
     errors: []string{},
@@ -51,20 +49,28 @@ func (c *asmContext) Ip() uint32 {
   return c.ip
 }
 
-func (c *asmContext) IncrementIp() {
-  c.ip++
+func (c *asmContext) ResetIp() {
+  c.ip = 0
+}
+
+func (c *asmContext) IncrementIp(n int) {
+  c.ip += uint32(n)
 }
 
 func (c *asmContext) IncrementLineNo() {
   c.lineNo++
 }
 
-func (c *asmContext) AddSymbol(n ast.Node) {
-  switch l := n.(type) {
-  case *ast.Label: 
-    c.st.Add(l.Name, c.ip, c.lineNo)
-    break
-  }
+// func (c *asmContext) AddSymbol(n ast.Node) {
+//   switch n := n.(type) {
+//   case *ast.Label: 
+//     c.st.Add(n.Name, c.ip, c.lineNo)
+//     break
+//   }
+// }
+
+func (c *asmContext) AddSymbol(name string) {
+  c.st.Add(name, c.ip, c.lineNo)
 }
 
 func (c *asmContext) FindSymbol(name string) (Symbol, bool) {
@@ -74,6 +80,10 @@ func (c *asmContext) FindSymbol(name string) (Symbol, bool) {
 
 func (c *asmContext) Error(format string, a ...interface{}) {
   c.errors = append(c.errors, fmt.Sprintf(format, a...))
+}
+
+func (c *asmContext) HasErrors() bool {
+  return len(c.errors) > 0
 }
 
 func (c *asmContext) Errors() []string {

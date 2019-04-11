@@ -5,9 +5,11 @@ import (
 
 	"github.com/mhoertnagl/epic-esm/lexer"
 	"github.com/mhoertnagl/epic-esm/token"
-  "github.com/mhoertnagl/epic-esm/gen"
+  //"github.com/mhoertnagl/epic-esm/gen"
   "github.com/mhoertnagl/epic-esm/ast"
 )
+
+// Include AsmContext
 
 type Parser struct {
 	lexer          *lexer.Lexer
@@ -83,15 +85,15 @@ func (p *Parser) errorNextLiteral(exp string) {
 	p.error("Expected literal [%s] but got [%s].", exp, p.nxtToken.Literal)
 }
 
-func (p *Parser) errorNode() Node {
+func (p *Parser) errorNode() ast.Node {
 	return &ast.Err{}
 }
 
-func (p *Parser) emptyNode() Node {
+func (p *Parser) emptyNode() ast.Node {
 	return &ast.Empty{}
 }
 
-func (p *Parser) Parse() Node {
+func (p *Parser) Parse() ast.Node {
   switch p.curToken.Typ {
   case token.EOF:
     return p.emptyNode()
@@ -105,13 +107,17 @@ func (p *Parser) Parse() Node {
 	return p.errorNode()
 }
 
-func (p *Parser) parseLabel() Node {
+func (p *Parser) parseLabel() ast.Node {
   ins := &ast.Label{}
   ins.Name = p.curToken.Literal
+  // Labels have to be on separate line.
+  if !p.curTokenIs(token.EOF) {
+    return p.errorNode()
+  }
   return ins
 }
 
-func (p *Parser) parseInstruction() Node {
+func (p *Parser) parseInstruction() ast.Node {
   ins := &ast.Instr{}
   if p.curTokenIs(token.SET) {
     ins.Set = true

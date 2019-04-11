@@ -6,6 +6,8 @@ import (
 
 const EOF byte = 0
 
+// Include AsmContext
+
 type Lexer struct {
 	input  string
 	curPos int
@@ -80,7 +82,7 @@ func (l *Lexer) Next() token.Token {
 			switch l.peek() {
 			case '>':
 				l.read()
-				tok = l.newToken2(token.ROR, "<>>")
+				tok = l.newToken2(token.SOP, "<>>")
 			default:
 				// Error: read [<>], expecting another [>].
 				tok = l.newToken(token.ILLEGAL)
@@ -91,9 +93,9 @@ func (l *Lexer) Next() token.Token {
 			switch l.peek() {
 			case '>':
 				l.read()
-				tok = l.newToken2(token.ROL, "<<>")
+				tok = l.newToken2(token.SOP, "<<>")
 			default:
-				tok = l.newToken2(token.SLL, "<<")
+				tok = l.newToken2(token.SOP, "<<")
 			}
 		default:
       // Error: read [<], expecting [<,>].
@@ -109,9 +111,9 @@ func (l *Lexer) Next() token.Token {
 			switch l.peek() {
 			case '>':
 				l.read()
-				tok = l.newToken2(token.SRA, ">>>")
+				tok = l.newToken2(token.SOP, ">>>")
 			default:
-				tok = l.newToken2(token.SRL, ">>")
+				tok = l.newToken2(token.SOP, ">>")
 			}
 		default:
       // Error: read [>], expecting [>].

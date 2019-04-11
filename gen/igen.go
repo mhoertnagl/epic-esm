@@ -24,19 +24,19 @@ func NewInstrGen(ctx  AsmContext) *InstrGen {
   return g
 }
 
-func (g *InstrGen) Generate(ins *ast.Instr) []uint32 {
-  return []uint32{}
+func (g *InstrGen) Generate(ins *ast.Instr) []*ast.Instr {
+  return []*ast.Instr{}
 }
 
-func (g *InstrGen) gen(set bool, cmd string, cond string, args ...token.Token) []uint32 {
-  ins := &ast.Instr{
-    Set: set,
-    Cmd: cmd,
-    Cond: cond,
-    Args: args,
-  }
-  return g.Generate(ins)
-}
+// func (g *InstrGen) gen(set bool, cmd string, cond string, args ...token.Token) []uint32 {
+//   ins := &ast.Instr{
+//     Set: set,
+//     Cmd: cmd,
+//     Cond: cond,
+//     Args: args,
+//   }
+//   return nil
+// }
 
 func (g *InstrGen) genOne(set bool, cmd string, cond string, args ...token.Token) uint32 {
   ins := &ast.Instr{
@@ -88,6 +88,7 @@ func (g *InstrGen) lda(set bool, cond string, rd string, lbl string) []uint32 {
   if !ok {
     g.ctx.Error("Undefinded symbol [%s].", lbl)
   }
+  // TODO: Kann nicht variable Länge haben.
   return g.ldc(set, cond, rd, sym.addr)
 }
 

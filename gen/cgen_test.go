@@ -136,8 +136,7 @@ func TestInstruction1(t *testing.T) {
 const msgErr = "Unexpected code [%08X]. Expecting code [%08X]."
 
 func test(t *testing.T, ins *ast.Instr, exp uint32) {
-  st := NewSymbolTable()
-  ctx := NewAsmContext("test.esm", st)
+  ctx := NewAsmContext("test.esm")
   g := NewCodeGen(ctx)
   code := g.Generate(ins)
   if code != exp {
