@@ -110,10 +110,9 @@ func compile(ctx gen.AsmContext, srcFile *os.File, binWriter *bufio.Writer, lstW
     switch n := node.(type) {
     case *ast.Instr:
       instrs := igen.Generate(n)
-      for i, ins := range instrs {
-        code := cgen.Generate(ins)
-        ip := ctx.Ip() + uint32(i)
-        fmt.Fprintf(lstWriter, "0x%08x  0x%08x  %s\n", ip, code, line)
+      for _, ins := range instrs {
+        code := cgen.Generate(ins)        
+        fmt.Fprintf(lstWriter, "0x%08x  0x%08x  %s\n", ctx.Ip(), code, line)
         writeInt32BigEndian(binWriter, code)
         ctx.IncrementIp(1)
       }

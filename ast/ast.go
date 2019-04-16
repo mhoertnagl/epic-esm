@@ -42,6 +42,8 @@ type Instr struct {
   Args []token.Token
 }
 
+type Instrs []*Instr
+
 func (n *Instr) ArgsString() string {
   params := []string{}
 

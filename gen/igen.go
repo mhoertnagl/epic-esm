@@ -7,92 +7,127 @@ import (
   "github.com/mhoertnagl/epic-esm/ast"
 )
 
-type Generator func(ins *ast.Instr) []uint32
+type Expansion func(ctx AsmContext, ins *ast.Instr) ast.Instrs
+
+type Expansions map[string]Expansion
 
 type InstrGen struct {
   ctx  AsmContext
-  cgen *CodeGen
+  exps Expansions
 }
-
-// TODO: Builder pattern?
 
 func NewInstrGen(ctx  AsmContext) *InstrGen {
   g := &InstrGen{
     ctx: ctx,
-    cgen: NewCodeGen(ctx),
+    exps: Expansions{},
+    // cgen: NewCodeGen(ctx),
   }
+  
+  g.Add("nop", g.nopExp)
+  g.Add("clr", g.clrExp)
+  g.Add("inv", g.invExp)
+  g.Add("neg", g.negExp)
+  g.Add("lda", g.ldaExp)
+  g.Add("ret", g.retExp)
+  
   return g
 }
 
-func (g *InstrGen) Generate(ins *ast.Instr) []*ast.Instr {
-  return []*ast.Instr{}
+func (g *InstrGen) Add(cmd string, exp Expansion) {
+  g.exps[cmd] = exp
 }
 
-// func (g *InstrGen) gen(set bool, cmd string, cond string, args ...token.Token) []uint32 {
-//   ins := &ast.Instr{
-//     Set: set,
-//     Cmd: cmd,
-//     Cond: cond,
-//     Args: args,
-//   }
-//   return nil
-// }
+func (g *InstrGen) GetExpanson(cmd string) Expansion {
+  exp, ok := g.exps[cmd]
+  if ok {
+    return exp
+  }
+  return expID
+}
 
-func (g *InstrGen) genOne(set bool, cmd string, cond string, args ...token.Token) uint32 {
-  ins := &ast.Instr{
+func (g *InstrGen) Generate(ins *ast.Instr) ast.Instrs {
+  return g.GetExpanson(ins.Cmd)(g.ctx, ins)
+}
+
+func expID(ctx AsmContext, ins *ast.Instr) ast.Instrs{ 
+  return ast.Instrs{ ins }
+}
+
+func (g *InstrGen) instr(set bool, cmd string, cond string, args ...token.Token) *ast.Instr {
+  return &ast.Instr{
     Set: set,
     Cmd: cmd,
     Cond: cond,
     Args: args,
   }
-  return g.cgen.Generate(ins)
 }
 
-func (g *InstrGen) nop() uint32 {
+func (g *InstrGen) nopExp(ctx AsmContext, ins *ast.Instr) ast.Instrs {
+  // TODO: Define as constant.
   // The nop instruction (addnv r0 r0 r0) is all zero. 
-  return 0
+  return ast.Instrs { 
+    g.instr(false, "add", "nv", reg("r0"), reg("r0"), reg("r0")),
+  }
 }
 
-func (g *InstrGen) clr(set bool, cond string, rd string) uint32 {
-  return g.genOne(set, "xor", cond, reg(rd), reg(rd), reg(rd))
+func (g *InstrGen) clrExp(ctx AsmContext, ins *ast.Instr) ast.Instrs {
+  // TODO: Type constraints like in cgen.
+  rd := ins.Args[0].Literal
+  return g.clr(ins.Set, ins.Cond, rd)
 }
 
-func (g *InstrGen) inv(set bool, cond string, rd string) uint32 {
-  return g.genOne(set, "nor", cond, reg(rd), reg(rd), reg(rd))
+func (g *InstrGen) clr(set bool, cond string, rd string) ast.Instrs {
+  return ast.Instrs { 
+    g.instr(set, "xor", cond, reg(rd), reg(rd), reg(rd)),
+  }
 }
 
-func (g *InstrGen) neg(set bool, cond string, rd string) uint32 {
-  return g.neg2(set, cond, rd, rd)
+func (g *InstrGen) invExp(ctx AsmContext, ins *ast.Instr) ast.Instrs {
+  // TODO: Type constraints like in cgen.
+  rd := ins.Args[0].Literal
+  ra := ins.Args[1].Literal
+  return ast.Instrs { 
+    g.instr(ins.Set, "nor", ins.Cond, reg(rd), reg(ra), reg(ra)),
+  }
 }
 
-func (g *InstrGen) neg2(set bool, cond string, rd string, ra string) uint32 {
-  return g.genOne(set, "mul", cond, reg(rd), reg(ra), numi(-1))
+func (g *InstrGen) negExp(ctx AsmContext, ins *ast.Instr) ast.Instrs {
+  // TODO: Type constraints like in cgen.
+  rd := ins.Args[0].Literal
+  ra := ins.Args[1].Literal
+  return ast.Instrs { 
+    g.instr(ins.Set, "mul", ins.Cond, reg(rd), reg(ra), numi(-1)),
+  }
 }
 
-func (g *InstrGen) ret(set bool, cond string) uint32 {
-  return g.ret1(set, cond, "rp")
+func (g *InstrGen) retExp(ctx AsmContext, ins *ast.Instr) ast.Instrs {
+  return ast.Instrs { 
+    g.instr(ins.Set, "mov", ins.Cond, reg("ip"), reg("rp")),
+  }
 }
 
-func (g *InstrGen) ret1(set bool, cond string, ra string) uint32 {
-  return g.genOne(set, "mov", cond, reg("ip"), reg(ra))
-}
-
-func (g *InstrGen) ldaGenerator(ins *ast.Instr) []uint32 {
+func (g *InstrGen) ldaExp(ctx AsmContext, ins *ast.Instr) ast.Instrs {
   rd := ins.Args[0].Literal
   lbl := ins.Args[1].Literal
   return g.lda(ins.Set, ins.Cond, rd, lbl)
 }
 
-func (g *InstrGen) lda(set bool, cond string, rd string, lbl string) []uint32 {
+func (g *InstrGen) lda(set bool, cond string, rd string, lbl string) ast.Instrs {
   sym, ok := g.ctx.FindSymbol(lbl)
   if !ok {
     g.ctx.Error("Undefinded symbol [%s].", lbl)
   }
-  // TODO: Kann nicht variable Länge haben.
-  return g.ldc(set, cond, rd, sym.addr)
+  
+  nu := sym.addr >> 16
+  nl := sym.addr & 0xFFFF
+  
+  return ast.Instrs { 
+    g.instr(false, "ldc", cond, reg(rd), numu(nu), sop("<<"), numu(16)),
+    g.instr(set, "ldc", cond, reg(rd), numu(nl)),
+  }
 }
 
-func (g *InstrGen) ldcGenerator(ins *ast.Instr) []uint32 {
+func (g *InstrGen) ldcExp(ctx AsmContext, ins *ast.Instr) ast.Instrs {
   rd := ins.Args[0].Literal
   ns := ins.Args[1].Literal
   n, err := parseNum(ns)
@@ -102,33 +137,26 @@ func (g *InstrGen) ldcGenerator(ins *ast.Instr) []uint32 {
   return g.ldc(ins.Set, ins.Cond, rd, uint32(n))
 }
 
-func (g *InstrGen) ldc(set bool, cond string, rd string, n uint32) []uint32 {
-  codes := []uint32{}
+func (g *InstrGen) ldc(set bool, cond string, rd string, n uint32) ast.Instrs {
+  instrs := ast.Instrs{}
   
   if n == 0 {
-    // code := g.genOne(set, "clr", cond, reg(rd))
-    // code := g.genOne(set, "xor", cond, reg(rd), reg(rd), reg(rd))
-    code := g.clr(set, cond, rd)
-    codes = append(codes, code)
-    return codes
+    return g.clr(set, cond, rd)
   }
-  
-  // if n > 0 {
-  //   return codes
-  // }
-  
+
   nu := n >> 16
+  nl := n & 0xFFFF
+    
   if (nu > 0) {
-    upper := g.genOne(false, "ldc", cond, reg(rd), numu(nu), sop("<<"), numu(16))
-    codes = append(codes, upper)
+    upper := g.instr(false, "ldh", cond, reg(rd), numu(nu), sop("<<"), numu(16))
+    instrs = append(instrs, upper)
   }
   
-  nl := n & 0xFFFF
   if (nl > 0) {
-    lower := g.genOne(set, "ldc", cond, reg(rd), numu(nl))
-    codes = append(codes, lower)
+    lower := g.instr(set, "ldh", cond, reg(rd), numu(nl))
+    instrs = append(instrs, lower)
   }
-  return codes
+  return instrs
 }
 
 func reg(r string) token.Token {

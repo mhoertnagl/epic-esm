@@ -498,11 +498,10 @@ func NewCodeGen(ctx AsmContext) *CodeGen {
   g.Add("! add c rd u16 << 16",      0x23000000)
   g.Add("! add c rd u16",            0x22000000)
   // ...
-  // TODO: Unsigned or signed?
-  g.Add("_ ldc c rd u16 << 16",      0x2100000F)
-  g.Add("_ ldc c rd u16",            0x2000000F)
-  g.Add("! ldc c rd u16 << 16",      0x2300000F)
-  g.Add("! ldc c rd u16",            0x2200000F)
+  g.Add("_ ldh c rd u16 << 16",      0x2100000F)
+  g.Add("_ ldh c rd u16",            0x2000000F)
+  g.Add("! ldh c rd u16 << 16",      0x2300000F)
+  g.Add("! ldh c rd u16",            0x2200000F)
   
   
   g.Add("_ stw c rd ra [ rb s u5 ]", 0x40000000)
