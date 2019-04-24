@@ -12,7 +12,7 @@ type AsmContext interface {
   
   ResetIp()
   
-  IncrementIp(n int)
+  IncrementIp(n uint32)
   
   IncrementLineNo()
   
@@ -53,8 +53,8 @@ func (c *asmContext) ResetIp() {
   c.ip = 0
 }
 
-func (c *asmContext) IncrementIp(n int) {
-  c.ip += uint32(n)
+func (c *asmContext) IncrementIp(n uint32) {
+  c.ip += n
 }
 
 func (c *asmContext) IncrementLineNo() {
@@ -89,18 +89,3 @@ func (c *asmContext) HasErrors() bool {
 func (c *asmContext) Errors() []string {
 	return c.errors
 }
-// 
-// 
-// 
-// func (c *asmContext) NewCodeGen() *CodeGen {
-//   return &CodeGen{0, c}
-// }
-// 
-// func (c *asmContext) Emit(g *CodeGen) {
-//   c.ip++
-//   c.lineNo++
-// }
-
-// func (c *asmContext) AddSymbol(label *ast.Label) {
-// 	c.st.Add(label.Name, c.ip, c.lineNo)
-// }

@@ -1,6 +1,8 @@
 package lexer
 
 import (
+  //"fmt"
+  
 	"github.com/mhoertnagl/epic-esm/token"
 )
 
@@ -212,9 +214,17 @@ func (l *Lexer) readID() string {
 
 func (l *Lexer) readNum() string {
 	start := l.curPos
-	for isDec(l.ch) {
-		l.read()
-	}
+  if l.ch == '0' && l.peek() == 'x' {
+    l.read()  // Read [0].
+    l.read()  // Read [x].
+    for isHex(l.ch) {
+      l.read()
+    }
+  } else {
+    for isDec(l.ch) {
+  		l.read()
+  	}    
+  }
 	return l.input[start:l.curPos]
 }
 
@@ -238,10 +248,9 @@ func isDec(c byte) bool {
 // 	return c == '0' || c == '1'
 // }
 
-// isHex returns true iff the character is a hexadecimal digit. Note however,
-// that the lower-case hexadecimal digits [a-f] are not supported.
+// isHex returns true iff the character is a hexadecimal digit.
 func isHex(c byte) bool {
-	return isDec(c) || ('A' <= c && c <= 'F')
+	return isDec(c) || ('a' <= c && c <= 'f') || ('A' <= c && c <= 'F')
 }
 
 // isLetter returns true iff the character is one of [a-zA-Z].

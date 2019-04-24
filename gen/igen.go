@@ -7,6 +7,9 @@ import (
   "github.com/mhoertnagl/epic-esm/ast"
 )
 
+// TODO: Add argument sanity checks.
+//       Perhaps like cgen? Probably overkill.
+
 type Expansion func(ctx AsmContext, ins *ast.Instr) ast.Instrs
 
 type Expansions map[string]Expansion
@@ -20,13 +23,13 @@ func NewInstrGen(ctx  AsmContext) *InstrGen {
   g := &InstrGen{
     ctx: ctx,
     exps: Expansions{},
-    // cgen: NewCodeGen(ctx),
   }
   
   g.Add("nop", g.nopExp)
   g.Add("clr", g.clrExp)
   g.Add("inv", g.invExp)
   g.Add("neg", g.negExp)
+  g.Add("ldc", g.ldcExp)
   g.Add("lda", g.ldaExp)
   g.Add("ret", g.retExp)
   
@@ -122,8 +125,8 @@ func (g *InstrGen) lda(set bool, cond string, rd string, lbl string) ast.Instrs 
   nl := sym.addr & 0xFFFF
   
   return ast.Instrs { 
-    g.instr(false, "ldc", cond, reg(rd), numu(nu), sop("<<"), numu(16)),
-    g.instr(set, "ldc", cond, reg(rd), numu(nl)),
+    g.instr(false, "ldh", cond, reg(rd), numu(nu), sop("<<"), numu(16)),
+    g.instr(set, "ldh", cond, reg(rd), numu(nl)),
   }
 }
 

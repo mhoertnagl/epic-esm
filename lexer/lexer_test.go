@@ -19,6 +19,19 @@ func TestSingleInstruction0(t *testing.T) {
 	test(t, input, tokens)
 }
 
+func TestSingleInstruction01(t *testing.T) {
+	input := "addgt r0 r1 0x42"
+
+	tokens := []token.Token{
+		{token.ID, "addgt"},
+    {token.REG, "r0"},
+    {token.REG, "r1"},
+    {token.NUM, "0x42"},
+		{token.EOF, string(0)},
+	}
+	test(t, input, tokens)
+}
+
 func TestSingleInstruction1(t *testing.T) {
 	input := "add r0 r0 42 << 1"
 
@@ -27,7 +40,7 @@ func TestSingleInstruction1(t *testing.T) {
     {token.REG, "r0"},
     {token.REG, "r0"},
     {token.NUM, "42"},
-    {token.SLL, "<<"},
+    {token.SOP, "<<"},
     {token.NUM, "1"},
 		{token.EOF, string(0)},
 	}
@@ -42,7 +55,7 @@ func TestSingleInstruction2(t *testing.T) {
     {token.REG, "r0"},
     {token.REG, "r0"},
     {token.NUM, "42"},
-    {token.SRL, ">>"},
+    {token.SOP, ">>"},
     {token.NUM, "1"},
 		{token.EOF, string(0)},
 	}
@@ -57,7 +70,7 @@ func TestSingleInstruction3(t *testing.T) {
     {token.REG, "r0"},
     {token.REG, "r0"},
     {token.NUM, "42"},
-    {token.SRA, ">>>"},
+    {token.SOP, ">>>"},
     {token.NUM, "1"},
 		{token.EOF, string(0)},
 	}
@@ -72,7 +85,7 @@ func TestSingleInstruction4(t *testing.T) {
     {token.REG, "r0"},
     {token.REG, "r0"},
     {token.NUM, "42"},
-    {token.ROL, "<<>"},
+    {token.SOP, "<<>"},
     {token.NUM, "1"},
 		{token.EOF, string(0)},
 	}
@@ -87,7 +100,7 @@ func TestSingleInstruction5(t *testing.T) {
     {token.REG, "r0"},
     {token.REG, "r0"},
     {token.NUM, "42"},
-    {token.ROR, "<>>"},
+    {token.SOP, "<>>"},
     {token.NUM, "1"},
 		{token.EOF, string(0)},
 	}

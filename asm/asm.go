@@ -22,8 +22,8 @@ func Assemble(cfg *AsmConfig) {
   ctx := gen.NewAsmContext(cfg.SrcFilePath)
   
   srcFile, err1 := os.Open(cfg.SrcFilePath)
-  binFile, err2 := os.Open(cfg.BinFilePath)
-  lstFile, err3 := os.Open(cfg.LstFilePath)
+  binFile, err2 := os.Create(cfg.BinFilePath)
+  lstFile, err3 := os.Create(cfg.LstFilePath)
   
   binWriter := bufio.NewWriter(binFile)
   lstWriter := bufio.NewWriter(lstFile)
@@ -82,7 +82,7 @@ func scan(ctx gen.AsmContext, srcFile *os.File) {
       break
     case *ast.Instr:
       instrs := igen.Generate(n)
-      ctx.IncrementIp(len(instrs))
+      ctx.IncrementIp(uint32(len(instrs)))
       break
     }
     
@@ -110,9 +110,13 @@ func compile(ctx gen.AsmContext, srcFile *os.File, binWriter *bufio.Writer, lstW
     switch n := node.(type) {
     case *ast.Instr:
       instrs := igen.Generate(n)
-      for _, ins := range instrs {
-        code := cgen.Generate(ins)        
-        fmt.Fprintf(lstWriter, "0x%08x  0x%08x  %s\n", ctx.Ip(), code, line)
+      for i, ins := range instrs {
+        code := cgen.Generate(ins)   
+        if i == 0 {
+          fmt.Fprintf(lstWriter, "0x%08x  0x%08x  %s\n", ctx.Ip(), code, line)          
+        } else {
+          fmt.Fprintf(lstWriter, "0x%08x  0x%08x\n", ctx.Ip(), code)          
+        }     
         writeInt32BigEndian(binWriter, code)
         ctx.IncrementIp(1)
       }

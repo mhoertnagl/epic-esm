@@ -1,5 +1,6 @@
 // Toller Test
-// Kann man mit xxd ansehen
+// Bin-File ansehen 
+//   xxd ./x.bin
 // ------------   
 
     add   r9  r10 r11
@@ -13,8 +14,14 @@
     add   r0  r1  r2 // Test
   ! sll   r0  r0  2
     // Noch ein Kommentar
-    cmp   r0  0xff
+    cmp   r0  0xFF
     brlgt @L0 
 
 @LOOP
     bra   @LOOP
+
+    ldc sp 0xFEFE8989
+    
+    ldc rp 0xABAB0000
+    
+    ldc ip 0x0000CDCD

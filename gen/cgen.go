@@ -65,7 +65,7 @@ func symValID(ctx AsmContext, param string, val string) bool {
 }
 
 func symConvID(ctx AsmContext, param string, val string) int32 { 
-  ctx.Error("Missing symbol converter for argument [%s].", val)
+  //ctx.Error("Missing symbol converter for argument [%s].", val)
   return 0 
 }
 
@@ -247,9 +247,9 @@ func parseNum(n string) (int64, error) {
 	// 	return strconv.ParseInt(n[2:], 2, 32)
 	// }
 	if len(n) > 2 && n[0:2] == "0x" {
-		return strconv.ParseInt(n[2:], 16, 32)
+		return strconv.ParseInt(n[2:], 16, 64)
 	}
-	return strconv.ParseInt(n, 10, 32)
+	return strconv.ParseInt(n, 10, 64)
 }
 
 func branchLabelConversion() SymbolConversion {
@@ -529,8 +529,7 @@ func (g *CodeGen) Generate(ins *ast.Instr) uint32 {
   as := ins.ArgsString()
   blk, ok := g.blocks[as]
   if !ok {
-    g.ctx.Error("Unsupported instruction [%s].", ins)
-    //g.ctx.Error("Unsupported arguments [%s] for command [%s].", as, ins.Cmd)
+    g.ctx.Error("Unsupported instruction [%s] with arg string [%s].", ins, as)
     return 0
   }
   code := blk.Template
