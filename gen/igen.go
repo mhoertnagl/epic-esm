@@ -150,12 +150,12 @@ func (g *InstrGen) ldc(set bool, cond string, rd string, n uint32) ast.Instrs {
   nu := n >> 16
   nl := n & 0xFFFF
     
-  if (nu > 0) {
+  if nu > 0 {
     upper := g.instr(false, "ldh", cond, reg(rd), numu(nu), sop("<<"), numu(16))
     instrs = append(instrs, upper)
   }
   
-  if (nl > 0) {
+  if nl > 0 {
     lower := g.instr(set, "ldh", cond, reg(rd), numu(nl))
     instrs = append(instrs, lower)
   }
