@@ -377,6 +377,8 @@ func NewCodeGen(ctx AsmContext) *CodeGen {
 	g.AddBitVal("@25", branchDistanceValidation())
 	g.AddBitConv("@25", placementConversion(25, 0))
 
+	// TODO: rda - places the same register at rd and ra
+
 	g.Add("_ add c rd ra rb s u5", 0x00000000)
 	g.Add("_ add c rd ra rb", 0x00000000)
 	g.Add("_ add c rd ra u12", 0x01000000)
@@ -433,6 +435,7 @@ func NewCodeGen(ctx AsmContext) *CodeGen {
 	g.Add("! nor c rd ra rb", 0x02000007)
 	g.Add("! nor c rd ra u12", 0x03000007)
 
+	// TODO: Hier fehlt auch noch was.
 	// "adu": 0x00000008,
 	// "sbu": 0x00000009,
 	// //"mlu": 0x0000000a, multiplikation ist immer signed
@@ -482,11 +485,11 @@ func NewCodeGen(ctx AsmContext) *CodeGen {
 	g.Add("_ add c rd u16", 0x20000000)
 	g.Add("! add c rd u16 << 16", 0x23000000)
 	g.Add("! add c rd u16", 0x22000000)
-	// ...
-	g.Add("_ ldh c rd u16 << 16", 0x2100000F)
-	g.Add("_ ldh c rd u16", 0x2000000F)
-	g.Add("! ldh c rd u16 << 16", 0x2300000F)
-	g.Add("! ldh c rd u16", 0x2200000F)
+	// TODO: Hier fehlt doch was :)
+	g.Add("_ mov c rd u16 << 16", 0x2100000F)
+	g.Add("_ mov c rd u16", 0x2000000F)
+	g.Add("! mov c rd u16 << 16", 0x2300000F)
+	g.Add("! mov c rd u16", 0x2200000F)
 
 	g.Add("_ stw c rd ra [ rb s u5 ]", 0x40000000)
 	g.Add("_ stw c rd ra [ rb ]", 0x40000000)
